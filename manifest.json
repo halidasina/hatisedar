@@ -1,0 +1,47 @@
+{
+  "name": "Muhasabah Journal — Hati Sedar",
+  "short_name": "Muhasabah",
+  "description": "Jurnal harian digital dalam Bahasa Melayu untuk jiwa yang sedar akan kehadiran Allah",
+  "start_url": "/hatisedar/app.html",
+  "scope": "/hatisedar/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2C2416",
+  "theme_color": "#C4975A",
+  "lang": "ms",
+  "categories": [
+    "lifestyle",
+    "health",
+    "education"
+  ],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "hatisedar-tt-screen1.jpg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Dashboard Peribadi"
+    },
+    {
+      "src": "hatisedar-tt-screen2.jpg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Muhasabah Harian"
+    }
+  ]
+}
