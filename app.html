@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Muhasabah Journal — Hati Sedar</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body,#root{min-height:100vh;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#F5F0E8;}
+
+/* EMOSI PAGE */
+.slider-wrap{margin:8px 0 4px;}
+input[type=range]{width:100%;height:6px;border-radius:100px;border:none;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,#D4A89A,#C4975A,#7A8C6E);outline:none;padding:0;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#2C2416;border:2px solid #C4975A;cursor:pointer;}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#2C2416;border:2px solid #C4975A;cursor:pointer;border:none;}
+.slider-val{text-align:center;font-family:'Cormorant Garamond',serif;font-size:40px;color:#C4975A;margin:8px 0;line-height:1;}
+.slider-labels{display:flex;justify-content:space-between;font-size:10px;color:#9B8E7A;margin-top:4px;font-family:'DM Mono',monospace;}
+.cause-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+.cause-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F5F0E8;border-radius:10px;border:1.5px solid rgba(196,151,90,.15);cursor:pointer;transition:all .18s;font-family:inherit;text-align:left;}
+.cause-btn:hover{border-color:rgba(196,151,90,.4);}
+.cause-btn.sel{border-color:#C4975A;background:rgba(196,151,90,.08);}
+.cause-box{width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(196,151,90,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s;}
+.cause-btn.sel .cause-box{background:#C4975A;border-color:#C4975A;}
+.cause-label{font-size:12px;color:#5C4F3A;}
+.emosi-doa{background:#2C2416;border-radius:14px;padding:20px;margin:14px 0;text-align:center;}
+.emosi-doa p{font-family:'Cormorant Garamond',serif;font-size:15px;font-style:italic;color:#E8C98A;line-height:1.6;margin-bottom:6px;}
+.emosi-doa small{font-size:10px;color:#9B8E7A;font-family:'DM Mono',monospace;letter-spacing:1px;}
+</style>
+
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Muhasabah">
+<meta name="theme-color" content="#C4975A">
+<meta name="description" content="Jurnal harian digital dalam Bahasa Melayu untuk jiwa yang sedar akan kehadiran Allah">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(r => console.log('SW registered'))
+        .catch(e => console.log('SW error', e));
+    });
+  }
+</script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+/* ══════════════════════════════════════
+   CONFIG — TUKAR DI SINI
+══════════════════════════════════════ */
+const ADMIN_PW      = "admin@hatisedar2026"; // ← tukar!
+const ANTHROPIC_KEY = "MASUKKAN_API_KEY_ANDA_DI_SINI"; // ← masukkan Anthropic API key
+const BUYERS_KEY    = "hs_buyers";
+const SESSION_KEY   = "hs_session";
+const JOURNAL_PRE   = "hs_j_";
+
+/* ── COLOURS ── */
+const C = {
+  cream:"#F5F0E8", warm:"#FDFAF4", gold:"#C4975A", goldL:"#E8C98A",
+  sage:"#7A8C6E", sageL:"#B8C4AD", deep:"#2C2416", mid:"#5C4F3A",
+  muted:"#9B8E7A", blush:"#D4A89A", teal:"#5B8A8B", white:"#FFFFFF",
+};
+
+const MOODS = [
+  {e:"😔",l:"Sedih",v:1},{e:"😟",l:"Risau",v:2},{e:"😐",l:"Biasa",v:3},
+  {e:"🙂",l:"Tenang",v:4},{e:"😊",l:"Gembira",v:5},
+];
+
+/* ── HELPERS ── */
+const today   = () => new Date().toISOString().slice(0,10);
+const fmtDate = d => d ? new Date(d+"T00:00:00").toLocaleDateString("ms-MY",{weekday:"long",day:"numeric",month:"long",year:"numeric"}) : "";
+const fmtShort= d => d ? new Date(d+"T00:00:00").toLocaleDateString("ms-MY",{day:"numeric",month:"short",year:"numeric"}) : "";
+const mlbl    = ym => { const [y,m]=ym.split("-"); return ["Jan","Feb","Mac","Apr","Mei","Jun","Jul","Ogos","Sep","Okt","Nov","Dis"][+m-1]+" "+y; };
+const genPW   = () => {
+  const w=["hati","jiwa","sedar","damai","tenang","syukur","sabar","ikhlas","cahaya","murni"];
+  return w[Math.floor(Math.random()*w.length)] + Math.floor(1000+Math.random()*9000);
+};
+const genId   = () => Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+
+/* ── DEMO BUYERS (untuk test — boleh padam lepas upload ke Netlify) ── */
+const DEMO_BUYERS = [
+  {id:"demo1", name:"Demo Pembeli 1", email:"", password:"hati1234",  createdAt:"2026-03-15", active:true},
+  {id:"demo2", name:"Demo Pembeli 2", email:"", password:"jiwa5678",  createdAt:"2026-03-15", active:true},
+  {id:"demo3", name:"Demo Pembeli 3", email:"", password:"sedar9012", createdAt:"2026-03-15", active:true},
+];
+
+/* ── STORAGE ── */
+const sget = k => {
+  if(k === BUYERS_KEY){
+    try{
+      const stored = JSON.parse(localStorage.getItem(k)||"[]");
+      const storedIds = stored.map(b=>b.id);
+      const extras = DEMO_BUYERS.filter(d=>!storedIds.includes(d.id));
+      return [...stored, ...extras];
+    }catch{ return DEMO_BUYERS; }
+  }
+  try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch{ return null; }
+};
+const sset = (k,v) => { try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} };
+
+/* ════════════════════════════════════════════
+   STYLES (injected)
+════════════════════════════════════════════ */
+const STYLE = `
+/* GATE */
+.gate{min-height:100vh;background:${C.deep};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;position:relative;overflow:hidden;}
+.orb{position:absolute;border-radius:50%;pointer-events:none;}
+.orb1{width:500px;height:500px;background:radial-gradient(circle,rgba(196,151,90,.1) 0%,transparent 65%);top:-150px;right:-150px;}
+.orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(91,138,139,.08) 0%,transparent 65%);bottom:-120px;left:-120px;}
+.gate-box{background:rgba(253,250,244,.04);border:1px solid rgba(196,151,90,.2);border-radius:24px;padding:40px 36px;width:100%;max-width:420px;text-align:center;}
+.gate-icon{font-size:48px;margin-bottom:16px;}
+.gate-title{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;color:white;margin-bottom:4px;}
+.gate-title em{font-style:italic;color:${C.goldL};}
+.gate-sub{font-size:12px;color:${C.sageL};margin-bottom:28px;line-height:1.7;}
+.gate-lbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:${C.muted};text-align:left;margin-bottom:8px;display:block;}
+.gate-inp{width:100%;padding:13px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(196,151,90,.25);border-radius:12px;color:white;font-size:15px;font-family:inherit;outline:none;text-align:center;letter-spacing:2px;transition:border-color .2s;}
+.gate-inp:focus{border-color:${C.gold};}
+.gate-inp::placeholder{color:rgba(255,255,255,.2);letter-spacing:0;}
+.gate-btn{margin-top:16px;width:100%;padding:14px;background:${C.gold};border:none;border-radius:100px;color:${C.deep};font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;transition:all .2s;}
+.gate-btn:hover{background:${C.goldL};transform:translateY(-1px);}
+.gate-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.gate-err{margin-top:12px;padding:10px 14px;background:rgba(192,57,43,.15);border:1px solid rgba(192,57,43,.3);border-radius:10px;font-size:12px;color:#f4a090;text-align:center;}
+.gate-hint{margin-top:18px;font-size:11px;color:${C.muted};line-height:1.7;}
+.gate-adm{margin-top:20px;font-size:10px;color:rgba(255,255,255,.08);cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:1px;transition:color .2s;}
+.gate-adm:hover{color:${C.muted};}
+.gate-quote{margin-top:28px;font-family:'Cormorant Garamond',serif;font-size:13px;font-style:italic;color:${C.muted};line-height:1.7;text-align:center;max-width:280px;}
+
+/* SPLASH */
+.splash{min-height:100vh;background:${C.deep};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;position:relative;overflow:hidden;text-align:center;}
+.splash-geo{position:absolute;top:50%;left:50%;transform:translate(-50%,-56%);font-size:260px;opacity:.04;color:${C.gold};pointer-events:none;}
+.s-badge{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:4px;color:${C.gold};text-transform:uppercase;margin-bottom:20px;animation:up .6s .1s both;}
+.s-title{font-family:'Cormorant Garamond',serif;font-size:clamp(52px,12vw,80px);font-weight:300;color:white;line-height:1.05;animation:up .6s .25s both;}
+.s-title em{font-style:italic;color:${C.goldL};}
+.s-rule{width:48px;height:1px;background:${C.gold};margin:20px auto;animation:up .6s .35s both;}
+.s-sub{font-size:13px;color:${C.sageL};max-width:280px;line-height:1.8;animation:up .6s .45s both;}
+.s-btn{margin-top:36px;padding:14px 44px;background:${C.gold};border:none;border-radius:100px;color:${C.deep};font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;transition:all .25s;animation:up .6s .6s both;}
+.s-btn:hover{background:${C.goldL};transform:translateY(-2px);}
+.s-name{font-size:12px;color:${C.sageL};margin-top:16px;animation:up .6s .7s both;}
+.s-logout{position:absolute;top:20px;right:20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:100px;padding:6px 14px;font-size:11px;color:${C.muted};cursor:pointer;font-family:'DM Mono',monospace;transition:all .2s;}
+.s-logout:hover{color:${C.blush};border-color:rgba(212,168,154,.4);}
+
+/* NAV */
+.nav{background:${C.deep};display:flex;align-items:center;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(196,151,90,.15);}
+.nav::-webkit-scrollbar{display:none;}
+.nav-brand{font-family:'Cormorant Garamond',serif;font-size:17px;color:${C.gold};font-style:italic;padding:0 16px 0 20px;border-right:1px solid rgba(255,255,255,.08);flex-shrink:0;}
+.nav-tab{padding:14px 14px;font-size:10px;color:${C.muted};cursor:pointer;white-space:nowrap;border:none;border-bottom:2px solid transparent;background:none;font-family:'DM Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;transition:all .2s;flex-shrink:0;}
+.nav-tab.active{color:${C.gold};border-bottom-color:${C.gold};}
+.nav-tab:hover:not(.active){color:${C.sageL};}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:8px;padding-right:12px;flex-shrink:0;}
+.save-dot{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1px;transition:all .4s;}
+.save-dot.saved{color:${C.sage};}  .save-dot.saving{color:${C.gold};}
+.nav-out{background:none;border:1px solid rgba(255,255,255,.08);border-radius:100px;padding:5px 12px;font-size:9px;color:${C.muted};cursor:pointer;font-family:'DM Mono',monospace;transition:all .2s;}
+.nav-out:hover{color:${C.blush};border-color:rgba(212,168,154,.3);}
+
+/* JOURNAL */
+.wrap{max-width:620px;margin:0 auto;padding:24px 18px 100px;}
+.card{background:${C.warm};border-radius:18px;padding:22px;margin-bottom:14px;border:1px solid rgba(196,151,90,.1);box-shadow:0 2px 16px rgba(44,36,22,.04);}
+.card-g{border-left:3px solid ${C.gold};}
+.card-s{border-left:3px solid ${C.sage};}
+.card-b{border-left:3px solid ${C.blush};}
+.card-d{border-left:3px solid ${C.deep};}
+.pg-title{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:300;margin-bottom:4px;}
+.pg-title em{font-style:italic;color:${C.gold};}
+.pg-sub{font-size:11px;color:${C.muted};font-family:'DM Mono',monospace;letter-spacing:1px;margin-bottom:22px;}
+.sec-tag{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:${C.gold};margin-bottom:5px;}
+.lbl{font-size:11px;font-weight:600;color:${C.mid};margin-bottom:6px;}
+.hint{font-size:11px;color:${C.muted};font-style:italic;margin-bottom:8px;}
+.fg{margin-bottom:14px;}
+textarea,input[type=text],input[type=date],input[type=password]{width:100%;border:1px solid rgba(196,151,90,.22);border-radius:10px;padding:10px 13px;font-size:13px;color:${C.deep};background:${C.cream};font-family:inherit;resize:none;outline:none;transition:border-color .2s;line-height:1.6;}
+textarea:focus,input:focus{border-color:${C.gold};background:${C.warm};}
+textarea{min-height:68px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.mood-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0;}
+.mood-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 12px;border-radius:13px;border:1.5px solid rgba(196,151,90,.18);background:${C.cream};cursor:pointer;transition:all .18s;font-family:inherit;}
+.mood-btn .e{font-size:22px;} .mood-btn .ml{font-size:8px;color:${C.muted};font-family:'DM Mono',monospace;}
+.mood-btn.sel{border-color:${C.gold};background:rgba(196,151,90,.1);transform:scale(1.06);}
+.syu-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.syu-n{width:22px;height:22px;border-radius:50%;background:${C.gold};color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.stat-box{background:${C.warm};border-radius:14px;padding:16px;text-align:center;border:1px solid rgba(196,151,90,.1);}
+.stat-n{font-family:'Cormorant Garamond',serif;font-size:36px;color:${C.gold};line-height:1;}
+.stat-l{font-size:10px;color:${C.muted};font-family:'DM Mono',monospace;margin-top:4px;}
+.btn{padding:12px 24px;border-radius:100px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;border:none;display:inline-flex;align-items:center;gap:8px;}
+.btn-gold{background:${C.gold};color:${C.deep};} .btn-gold:hover{background:${C.goldL};transform:translateY(-1px);}
+.btn-out{background:transparent;color:${C.gold};border:1.5px solid ${C.gold};} .btn-out:hover{background:rgba(196,151,90,.08);}
+.btn-sm{padding:7px 14px;font-size:11px;}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
+.qbox{background:${C.deep};border-radius:14px;padding:18px 20px;margin:14px 0;text-align:center;}
+.qbox p{font-family:'Cormorant Garamond',serif;font-size:15px;font-style:italic;color:${C.goldL};line-height:1.6;}
+.qbox small{font-size:10px;color:${C.muted};margin-top:6px;display:block;}
+.home-hero{background:${C.deep};border-radius:20px;padding:28px 24px;margin-bottom:16px;position:relative;overflow:hidden;}
+.home-hero::after{content:'✦';position:absolute;font-size:200px;color:${C.gold};opacity:.04;right:-40px;top:-40px;pointer-events:none;line-height:1;}
+.home-hero h1{font-family:'Cormorant Garamond',serif;font-size:26px;color:white;font-weight:300;margin-bottom:4px;}
+.home-hero h1 em{font-style:italic;color:${C.goldL};}
+.home-hero p{font-size:12px;color:${C.sageL};line-height:1.7;margin-bottom:20px;}
+.streak-row{display:flex;gap:6px;margin-bottom:20px;}
+.sday{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:'DM Mono',monospace;}
+.sday.done{background:${C.gold};color:${C.deep};} .sday.today{background:rgba(196,151,90,.2);color:${C.gold};border:1.5px solid ${C.gold};} .sday.miss{background:rgba(255,255,255,.06);color:rgba(255,255,255,.2);}
+.ecard{background:${C.warm};border-radius:14px;padding:18px;margin-bottom:10px;border:1px solid rgba(196,151,90,.1);cursor:pointer;transition:all .2s;}
+.ecard:hover{border-color:${C.gold};}
+.edate{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:${C.gold};margin-bottom:6px;}
+.eprev{font-size:12px;color:${C.muted};line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.etag{font-size:9px;padding:3px 9px;border-radius:100px;font-family:'DM Mono',monospace;}
+.tg{background:rgba(122,140,110,.12);color:${C.sage};} .tt{background:rgba(91,138,139,.12);color:${C.teal};}
+.mtabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-bottom:20px;padding-bottom:4px;}
+.mtabs::-webkit-scrollbar{display:none;}
+.mtab{padding:7px 16px;border-radius:100px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:1px;cursor:pointer;white-space:nowrap;border:none;transition:all .2s;flex-shrink:0;}
+.mtab.active{background:${C.gold};color:${C.deep};font-weight:700;}
+.mtab:not(.active){background:${C.warm};color:${C.muted};border:1px solid rgba(196,151,90,.15);}
+.ai-box{background:${C.deep};border-radius:18px;padding:24px;margin-bottom:14px;position:relative;overflow:hidden;}
+.ai-box::before{content:'✦';position:absolute;font-size:120px;color:${C.gold};opacity:.05;right:-20px;bottom:-30px;}
+.ai-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:3px;color:${C.gold};margin-bottom:8px;}
+.ai-content{font-size:13px;color:rgba(255,255,255,.85);line-height:1.9;}
+.ai-dot{width:8px;height:8px;border-radius:50%;background:${C.gold};animation:pulse 1.2s infinite;display:inline-block;margin-right:4px;}
+.ai-dot:nth-child(2){animation-delay:.2s;} .ai-dot:nth-child(3){animation-delay:.4s;}
+.modal-ov{position:fixed;inset:0;background:rgba(44,36,22,.7);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
+.modal{background:${C.cream};border-radius:24px 24px 0 0;padding:28px 22px 48px;width:100%;max-width:640px;max-height:85vh;overflow-y:auto;}
+.m-handle{width:40px;height:4px;border-radius:100px;background:rgba(196,151,90,.3);margin:0 auto 20px;}
+.m-close{float:right;background:none;border:none;font-size:20px;color:${C.muted};cursor:pointer;}
+.empty{text-align:center;padding:48px 24px;color:${C.muted};}
+
+/* ADMIN */
+.adm{min-height:100vh;background:#0d0b07;}
+.adm-nav{background:#1a1408;border-bottom:1px solid rgba(196,151,90,.2);padding:14px 24px;display:flex;align-items:center;gap:12px;}
+.adm-nav-title{font-family:'Cormorant Garamond',serif;font-size:20px;color:${C.gold};font-style:italic;}
+.adm-badge{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:${C.deep};background:${C.gold};padding:3px 10px;border-radius:100px;}
+.adm-body{max-width:960px;margin:0 auto;padding:32px 20px;}
+.adm-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px;}
+.adm-stat{background:#1a1408;border:1px solid rgba(196,151,90,.15);border-radius:14px;padding:18px;text-align:center;}
+.adm-stat-n{font-family:'Cormorant Garamond',serif;font-size:38px;color:${C.gold};line-height:1;}
+.adm-stat-l{font-size:10px;color:${C.muted};font-family:'DM Mono',monospace;margin-top:4px;}
+.adm-sec{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:3px;color:${C.muted};margin-bottom:14px;text-transform:uppercase;}
+.adm-add{background:#1a1408;border:1px solid rgba(196,151,90,.2);border-radius:16px;padding:24px;margin-bottom:24px;}
+.adm-grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end;}
+.adm-inp{width:100%;padding:10px 13px;background:rgba(255,255,255,.04);border:1px solid rgba(196,151,90,.2);border-radius:10px;color:white;font-size:13px;font-family:inherit;outline:none;transition:border-color .2s;}
+.adm-inp:focus{border-color:${C.gold};}
+.adm-inp::placeholder{color:rgba(255,255,255,.2);}
+.adm-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:${C.muted};margin-bottom:6px;display:block;}
+.adm-table{width:100%;border-collapse:collapse;}
+.adm-table th{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:${C.muted};text-align:left;padding:10px 14px;border-bottom:1px solid rgba(196,151,90,.15);}
+.adm-table td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;color:rgba(255,255,255,.8);vertical-align:middle;}
+.adm-table tr:hover td{background:rgba(196,151,90,.04);}
+.b-active{background:rgba(122,140,110,.2);color:${C.sageL};font-size:10px;padding:3px 10px;border-radius:100px;font-family:'DM Mono',monospace;}
+.b-off{background:rgba(155,142,122,.1);color:${C.muted};font-size:10px;padding:3px 10px;border-radius:100px;font-family:'DM Mono',monospace;}
+.pw-pill{font-family:'DM Mono',monospace;font-size:12px;color:${C.goldL};background:rgba(196,151,90,.12);padding:4px 10px;border-radius:6px;cursor:pointer;letter-spacing:1px;border:none;transition:all .2s;}
+.pw-pill:hover{background:rgba(196,151,90,.22);}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${C.gold};color:${C.deep};padding:10px 22px;border-radius:100px;font-size:12px;font-weight:700;font-family:'DM Mono',monospace;z-index:999;animation:up .3s ease;white-space:nowrap;}
+.search{width:100%;padding:10px 16px;background:rgba(255,255,255,.04);border:1px solid rgba(196,151,90,.2);border-radius:10px;color:white;font-size:13px;font-family:inherit;outline:none;margin-bottom:16px;}
+.search::placeholder{color:rgba(255,255,255,.2);}
+.cfm-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:flex;align-items:center;justify-content:center;padding:24px;}
+.cfm-box{background:#1a1408;border:1px solid rgba(196,151,90,.2);border-radius:20px;padding:32px;max-width:360px;width:100%;text-align:center;}
+.cfm-box h3{font-family:'Cormorant Garamond',serif;font-size:22px;color:white;margin-bottom:8px;}
+.cfm-box p{font-size:13px;color:${C.muted};margin-bottom:24px;line-height:1.6;}
+.cfm-acts{display:flex;gap:10px;justify-content:center;}
+.tbl-wrap{background:#1a1408;border:1px solid rgba(196,151,90,.15);border-radius:16px;overflow:hidden;}
+
+@keyframes up{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.fade{animation:up .35s ease both;}
+@media(max-width:600px){
+  .adm-stats{grid-template-columns:1fr 1fr;}
+  .adm-grid{grid-template-columns:1fr;}
+  .adm-table td:nth-child(3),.adm-table th:nth-child(3){display:none;}
+  .row2{grid-template-columns:1fr;}
+}
+`;
+
+/* ════════════════════════════════════════════
+   ADMIN DASHBOARD
+════════════════════════════════════════════ */
+function Admin({onLogout}) {
+  const [buyers,setBuyers] = useState([]);
+  const [search,setSearch] = useState("");
+  const [name,setName]     = useState("");
+  const [email,setEmail]   = useState("");
+  const [pw,setPw]         = useState(genPW());
+  const [toast,setToast]   = useState("");
+  const [cfm,setCfm]       = useState(null);
+
+  useEffect(()=>{ setBuyers(sget(BUYERS_KEY)||[]); },[]);
+
+  const save = list => { setBuyers(list); sset(BUYERS_KEY,list); };
+  const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),3000); };
+
+  const addBuyer = () => {
+    if(!name.trim()||!pw.trim()) return;
+    const b={id:genId(),name:name.trim(),email:email.trim(),password:pw.trim(),createdAt:today(),active:true};
+    save([...buyers,b]);
+    setName(""); setEmail(""); setPw(genPW());
+    showToast("✓ Pembeli ditambah!");
+  };
+
+  const toggle   = id => save(buyers.map(b=>b.id===id?{...b,active:!b.active}:b));
+  const resetPw  = id => { const p=genPW(); save(buyers.map(b=>b.id===id?{...b,password:p}:b)); showToast("Password baru: "+p); };
+  const delBuyer = id => { save(buyers.filter(b=>b.id!==id)); setCfm(null); showToast("Pembeli dipadam."); };
+  const copyPw   = p  => { try{navigator.clipboard.writeText(p);}catch{} showToast("Disalin: "+p); };
+
+  const active = buyers.filter(b=>b.active).length;
+  const shown  = buyers.filter(b=>
+    b.name.toLowerCase().includes(search.toLowerCase())||
+    b.email.toLowerCase().includes(search.toLowerCase())||
+    b.password.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="adm">
+      <div className="adm-nav">
+        <div className="adm-nav-title">Hati Sedar</div>
+        <span className="adm-badge">ADMIN DASHBOARD</span>
+        <div style={{marginLeft:"auto"}}>
+          <button className="btn btn-sm" style={{background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",color:C.muted,fontSize:11,fontFamily:"'DM Mono',monospace"}} onClick={onLogout}>Log Keluar</button>
+        </div>
+      </div>
+      <div className="adm-body">
+        {/* Stats */}
+        <div className="adm-stats">
+          <div className="adm-stat"><div className="adm-stat-n">{buyers.length}</div><div className="adm-stat-l">JUMLAH PEMBELI</div></div>
+          <div className="adm-stat"><div className="adm-stat-n">{active}</div><div className="adm-stat-l">AKTIF</div></div>
+          <div className="adm-stat"><div className="adm-stat-n">{buyers.length-active}</div><div className="adm-stat-l">TIDAK AKTIF</div></div>
+          <div className="adm-stat"><div className="adm-stat-n" style={{fontSize:18,paddingTop:10}}>RM{(buyers.length*14.90).toFixed(2)}</div><div className="adm-stat-l">JUMLAH HASIL</div></div>
+        </div>
+
+        {/* Add */}
+        <div className="adm-add">
+          <div className="adm-sec" style={{marginBottom:16}}>Tambah Pembeli Baru</div>
+          <div className="adm-grid">
+            <div><label className="adm-lbl">NAMA</label><input className="adm-inp" placeholder="cth: Siti Aminah" value={name} onChange={e=>setName(e.target.value)}/></div>
+            <div><label className="adm-lbl">EMAIL (PILIHAN)</label><input className="adm-inp" placeholder="email@gmail.com" value={email} onChange={e=>setEmail(e.target.value)}/></div>
+            <div>
+              <label className="adm-lbl">PASSWORD &nbsp;<span style={{cursor:"pointer",color:C.gold}} onClick={()=>setPw(genPW())}>↻ Jana Baru</span></label>
+              <input className="adm-inp" value={pw} onChange={e=>setPw(e.target.value)} style={{fontFamily:"'DM Mono',monospace",letterSpacing:1}}/>
+            </div>
+            <button className="btn btn-gold" onClick={addBuyer} disabled={!name.trim()||!pw.trim()}>+ Tambah</button>
+          </div>
+          <p style={{fontSize:11,color:C.muted,marginTop:12,fontFamily:"'DM Mono',monospace"}}>
+            💡 Klik password (pill emas) dalam senarai untuk salin — paste dalam OnPay delivery message
+          </p>
+        </div>
+
+        {/* Table */}
+        <div className="adm-sec">Senarai Pembeli ({buyers.length})</div>
+        <input className="search" placeholder="🔍  Cari nama, email, password..." value={search} onChange={e=>setSearch(e.target.value)}/>
+
+        {shown.length===0
+          ? <div className="empty" style={{color:C.muted}}>{buyers.length===0?"Belum ada pembeli. Tambah pembeli pertama anda!":"Tiada hasil carian."}</div>
+          : <div className="tbl-wrap"><table className="adm-table">
+              <thead><tr>
+                <th>NAMA</th><th>PASSWORD</th><th>TARIKH DAFTAR</th><th>STATUS</th><th>TINDAKAN</th>
+              </tr></thead>
+              <tbody>
+                {shown.map(b=>(
+                  <tr key={b.id}>
+                    <td><div style={{fontWeight:600,color:"white"}}>{b.name}</div>{b.email&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{b.email}</div>}</td>
+                    <td><button className="pw-pill" onClick={()=>copyPw(b.password)} title="Klik untuk salin">{b.password}</button></td>
+                    <td style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted}}>{fmtShort(b.createdAt)}</td>
+                    <td><span className={b.active?"b-active":"b-off"}>{b.active?"Aktif":"Tidak Aktif"}</span></td>
+                    <td>
+                      <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                        <button className="btn btn-sm" style={{background:"rgba(196,151,90,.1)",color:C.gold,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>copyPw(b.password)}>Salin PW</button>
+                        <button className="btn btn-sm" style={{background:"rgba(91,138,139,.1)",color:C.teal,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>resetPw(b.id)}>Reset PW</button>
+                        <button className="btn btn-sm" style={{background:b.active?"rgba(155,142,122,.1)":"rgba(122,140,110,.1)",color:b.active?C.muted:C.sage,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>toggle(b.id)}>{b.active?"Nyahaktif":"Aktifkan"}</button>
+                        <button className="btn btn-sm" style={{background:"rgba(192,57,43,.1)",color:"#e74c3c",border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>setCfm({id:b.id,name:b.name})}>Padam</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+        }
+      </div>
+
+      {cfm&&<div className="cfm-ov"><div className="cfm-box">
+        <h3>Padam Pembeli?</h3>
+        <p>Anda akan memadamkan <strong style={{color:"white"}}>{cfm.name}</strong> secara kekal.</p>
+        <div className="cfm-acts">
+          <button className="btn btn-out btn-sm" onClick={()=>setCfm(null)}>Batal</button>
+          <button className="btn btn-sm" style={{background:"#e74c3c",color:"white",border:"none"}} onClick={()=>delBuyer(cfm.id)}>Padam</button>
+        </div>
+      </div></div>}
+      {toast&&<div className="toast">{toast}</div>}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════
+   PASSWORD GATE
+════════════════════════════════════════════ */
+function Gate({onBuyer, onAdmin}) {
+  const [pw,setPw]   = useState("");
+  const [err,setErr] = useState("");
+  const [busy,setBusy] = useState(false);
+  const [adm,setAdm] = useState(false);
+  const [apw,setApw] = useState("");
+
+  const login = () => {
+    if(!pw.trim()){setErr("Sila masukkan password."); return;}
+    setBusy(true); setErr("");
+    setTimeout(()=>{
+      const buyers = sget(BUYERS_KEY)||[];
+      const b = buyers.find(x=>x.active && x.password.toLowerCase()===pw.trim().toLowerCase());
+      if(b){ onBuyer(b); }
+      else { setErr("Password salah atau tidak aktif. Hubungi @hatisedar."); }
+      setBusy(false);
+    },500);
+  };
+
+  const adminLogin = () => {
+    if(apw===ADMIN_PW){ onAdmin(); }
+    else { setErr("Password admin salah."); }
+  };
+
+  return (
+    <div className="gate">
+      <div className="orb orb1"/><div className="orb orb2"/>
+      {!adm
+        ? <div className="gate-box">
+            <div style={{marginBottom:16,display:"flex",justifyContent:"center"}}>
+              <svg width="72" height="72" viewBox="0 0 90 90" fill="none">
+                <circle cx="45" cy="45" r="42" fill="#1A1408" stroke="#C4975A" strokeWidth="0.6" opacity="0.5"/>
+                <path d="M 26 72 L 26 46 Q 26 24, 45 24 Q 64 24, 64 46 L 64 72 Z" fill="none" stroke="#C4975A" strokeWidth="1.1"/>
+                <path d="M 30 70 L 30 47 Q 30 29, 45 29 Q 60 29, 60 47 L 60 70 Z" fill="none" stroke="#C4975A" strokeWidth="0.35" opacity="0.22"/>
+                <line x1="45" y1="65" y2="41" x2="45" stroke="#7A8C6E" strokeWidth="1"/>
+                <path d="M 45 53 C 39 47, 35 40, 40 35 C 42 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.82"/>
+                <path d="M 45 53 C 51 47, 55 40, 50 35 C 48 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.62"/>
+                <ellipse cx="45" cy="34.5" rx="1.9" ry="2.7" fill="#B8C4AD" opacity="0.88"/>
+                <line x1="22" y1="72" x2="68" y2="72" stroke="#C4975A" strokeWidth="0.9"/>
+                <line x1="18" y1="76" x2="72" y2="76" stroke="#C4975A" strokeWidth="0.4" opacity="0.3"/>
+                <line x1="45" y1="17" x2="45" y2="23" stroke="#C4975A" strokeWidth="0.65" opacity="0.55"/>
+                <line x1="42" y1="20" x2="48" y2="20" stroke="#C4975A" strokeWidth="0.65" opacity="0.55"/>
+                <line x1="42.8" y1="17.8" x2="47.2" y2="22.2" stroke="#C4975A" strokeWidth="0.65" opacity="0.55"/>
+                <line x1="47.2" y1="17.8" x2="42.8" y2="22.2" stroke="#C4975A" strokeWidth="0.65" opacity="0.55"/>
+              </svg>
+            </div>
+            <h1 className="gate-title">Muhasabah<br/><em>Journal</em></h1>
+            <p className="gate-sub">Masukkan password akses anda.<br/>Password dihantar bersama resit pembelian.</p>
+            <label className="gate-lbl">PASSWORD AKSES</label>
+            <input className="gate-inp" type="password" placeholder="Masukkan password..." value={pw}
+              onChange={e=>{setPw(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&login()}/>
+            <button className="gate-btn" onClick={login} disabled={busy}>{busy?"Menyemak...":"Masuk →"}</button>
+            {err&&<div className="gate-err">{err}</div>}
+            <p className="gate-hint">Belum beli? Dapatkan akses di TikTok Shop @hatisedar</p>
+            <div className="gate-adm" onClick={()=>{setAdm(true);setErr("");}}>· · ·</div>
+          </div>
+        : <div className="gate-box">
+            <div className="gate-icon">🔑</div>
+            <h1 className="gate-title" style={{fontSize:24}}>Admin<br/><em>Login</em></h1>
+            <p className="gate-sub" style={{marginBottom:20}}>Dashboard pengurusan pembeli</p>
+            <label className="gate-lbl">PASSWORD ADMIN</label>
+            <input className="gate-inp" type="password" placeholder="Admin password..." value={apw}
+              onChange={e=>{setApw(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&adminLogin()}/>
+            <button className="gate-btn" onClick={adminLogin}>Masuk Admin →</button>
+            {err&&<div className="gate-err">{err}</div>}
+            <button style={{marginTop:16,background:"none",border:"none",color:C.muted,fontSize:12,cursor:"pointer",fontFamily:"'DM Mono',monospace"}} onClick={()=>{setAdm(false);setErr("");}}>← Kembali</button>
+          </div>
+      }
+      <p className="gate-quote">"Hisablah dirimu sebelum kamu dihisab."<br/><span style={{fontSize:10}}>— Saidina Umar Al-Khattab r.a.</span></p>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════
+   JOURNAL COMPONENTS
+════════════════════════════════════════════ */
+const F = ({label,hint,children}) => <div className="fg">{label&&<div className="lbl">{label}</div>}{hint&&<div className="hint">{hint}</div>}{children}</div>;
+
+function Home({entries,nav,name,onLogout}) {
+  const DAYS=["I","S","R","K","J","S","A"]; const td=today(); const te=entries[td];
+  const streak=()=>{let s=0,d=new Date();while(true){const k=d.toISOString().slice(0,10);if(entries[k]){s++;d.setDate(d.getDate()-1);}else break;if(s>30)break;}return s;};
+  const tot=Object.keys(entries).length;
+  const avgMood=tot?(Object.values(entries).reduce((a,e)=>a+(MOODS.find(m=>m.e===e.mood)?.v||3),0)/tot).toFixed(1):"—";
+  const me=avgMood>=4.5?"😊":avgMood>=3.5?"🙂":avgMood>=2.5?"😐":"😟";
+  const last7=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));const k=d.toISOString().slice(0,10);return{key:k,done:!!entries[k],isToday:k===td,lbl:DAYS[d.getDay()===0?6:d.getDay()-1]};});
+  return(<div className="wrap fade">
+    <div className="home-hero">
+      <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}>
+        <svg width="44" height="44" viewBox="0 0 90 90" fill="none">
+          <circle cx="45" cy="45" r="42" fill="#1A1408" stroke="#C4975A" strokeWidth="0.8" opacity="0.6"/>
+          <path d="M 26 72 L 26 46 Q 26 24, 45 24 Q 64 24, 64 46 L 64 72 Z" fill="none" stroke="#C4975A" strokeWidth="1.3"/>
+          <line x1="45" y1="65" y2="40" x2="45" stroke="#7A8C6E" strokeWidth="1.2"/>
+          <path d="M 45 53 C 39 47, 35 40, 40 35 C 42 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.85"/>
+          <path d="M 45 53 C 51 47, 55 40, 50 35 C 48 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.65"/>
+          <ellipse cx="45" cy="34" rx="2" ry="3" fill="#B8C4AD" opacity="0.9"/>
+          <line x1="22" y1="72" x2="68" y2="72" stroke="#C4975A" strokeWidth="1"/>
+          <line x1="45" y1="16" x2="45" y2="23" stroke="#C4975A" strokeWidth="0.7" opacity="0.6"/>
+          <line x1="41.5" y1="19.5" x2="48.5" y2="19.5" stroke="#C4975A" strokeWidth="0.7" opacity="0.6"/>
+          <line x1="42.6" y1="16.8" x2="47.4" y2="22.2" stroke="#C4975A" strokeWidth="0.7" opacity="0.6"/>
+          <line x1="47.4" y1="16.8" x2="42.6" y2="22.2" stroke="#C4975A" strokeWidth="0.7" opacity="0.6"/>
+        </svg>
+        <div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:3,color:"#C4975A",marginBottom:2}}>HATI SEDAR</div>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:"white",fontWeight:300,lineHeight:1.2}}>Selamat <em style={{fontStyle:"italic",color:"#E8C98A"}}>{new Date().getHours()<12?"Pagi":new Date().getHours()<17?"Petang":"Malam"}</em>, {name.split(" ")[0]}</div>
+        </div>
+      </div>
+      <p>Jadikan hari ini lebih bermakna dengan muhasabah diri.</p>
+      <div className="streak-row">{last7.map(d=><div key={d.key} className={`sday ${d.done?"done":d.isToday?"today":"miss"}`}>{d.lbl}</div>)}</div>
+      <button className="btn btn-gold" onClick={()=>nav("harian")}>{te?"✏️ Sambung Menulis":"☀️ Mula Muhasabah Hari Ini"}</button>
+    </div>
+    <div className="stats-row">
+      <div className="stat-box"><div className="stat-n">{streak()}</div><div className="stat-l">STREAK</div></div>
+      <div className="stat-box"><div className="stat-n">{tot}</div><div className="stat-l">ENTRI</div></div>
+      <div className="stat-box"><div className="stat-n">{tot?me:"—"}</div><div className="stat-l">MOOD</div></div>
+    </div>
+    <div className="qbox"><p>"Hisablah dirimu sebelum kamu dihisab."</p><small>— Saidina Umar Al-Khattab r.a.</small></div>
+    <div className="card" style={{textAlign:"center"}}>
+      <div className="sec-tag" style={{marginBottom:8}}>RINGKASAN BULANAN AI</div>
+      <p style={{fontSize:12,color:C.muted,marginBottom:14}}>{Object.keys(entries).filter(k=>k.startsWith(today().slice(0,7))).length} entri bulan ini.</p>
+      <button className="btn btn-gold" onClick={()=>nav("summary")}>✨ Lihat Ringkasan AI</button>
+    </div>
+    <SessionFooter onLogout={onLogout} onChangePw={()=>setShowChangePw(true)}/>
+  </div>);
+}
+
+function Harian({entries,onSave,onLogout}) {
+  const [sel,setSel]=useState(today()); const e=entries[sel]||{}; const f=(k,v)=>onSave(sel,{...e,[k]:v});
+  return(<div className="wrap fade">
+    <div className="pg-title"><em>Muhasabah</em> Harian</div><div className="pg-sub">{fmtDate(sel)}</div>
+    <div className="card card-g"><F label="Pilih Tarikh:"><input type="date" value={sel} max={today()} onChange={ev=>setSel(ev.target.value)}/></F></div>
+    <div className="card card-g">
+      <div className="sec-tag">☀️ MUHASABAH PAGI</div>
+      <F label="Niat saya hari ini:"><textarea rows={3} placeholder="Ya Allah, hari ini saya berniat untuk..." value={e.niat||""} onChange={ev=>f("niat",ev.target.value)}/></F>
+      <F label="Satu perkara baik:"><textarea rows={2} value={e.baikHari||""} onChange={ev=>f("baikHari",ev.target.value)}/></F>
+    </div>
+    <div className="card card-b">
+      <div className="sec-tag">💛 PERASAAN HATI</div>
+      <div className="mood-row">{MOODS.map(m=><button key={m.e} className={`mood-btn ${e.mood===m.e?"sel":""}`} onClick={()=>f("mood",m.e)}><span className="e">{m.e}</span><span className="ml">{m.l}</span></button>)}</div>
+    </div>
+    <div className="card card-s">
+      <div className="sec-tag">✨ 3 PERKARA SYUKUR</div>
+      {[1,2,3].map(i=><div key={i} className="syu-row"><div className="syu-n">{i}</div><input type="text" placeholder={`Nikmat ke-${i}...`} value={e[`s${i}`]||""} onChange={ev=>f(`s${i}`,ev.target.value)}/></div>)}
+    </div>
+    <div className="card card-d">
+      <div className="sec-tag">🌙 MUHASABAH MALAM</div>
+      <F label="Pencapaian hari ini:"><textarea rows={2} value={e.berjaya||""} onChange={ev=>f("berjaya",ev.target.value)}/></F>
+      <F label="Perlu diperbaiki esok:"><textarea rows={2} value={e.perbaiki||""} onChange={ev=>f("perbaiki",ev.target.value)}/></F>
+      <F label="Luahan hati:"><textarea rows={3} value={e.luahan||""} onChange={ev=>f("luahan",ev.target.value)}/></F>
+    </div>
+    <div style={{background:C.deep,borderRadius:18,padding:"24px 22px",marginTop:8,textAlign:"center",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",fontSize:120,color:C.gold,opacity:.05,right:-20,bottom:-30,pointerEvents:"none",lineHeight:1}}>✦</div>
+      <svg width="36" height="36" viewBox="0 0 90 90" fill="none" style={{margin:"0 auto 10px",display:"block"}}>
+        <path d="M 26 72 L 26 46 Q 26 24, 45 24 Q 64 24, 64 46 L 64 72 Z" fill="none" stroke="#C4975A" strokeWidth="1.3"/>
+        <line x1="45" y1="65" y2="40" x2="45" stroke="#7A8C6E" strokeWidth="1.1"/>
+        <path d="M 45 53 C 39 47, 35 40, 40 35 C 42 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.85"/>
+        <path d="M 45 53 C 51 47, 55 40, 50 35 C 48 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.65"/>
+        <ellipse cx="45" cy="34" rx="2" ry="3" fill="#B8C4AD" opacity="0.9"/>
+        <line x1="22" y1="72" x2="68" y2="72" stroke="#C4975A" strokeWidth="1"/>
+      </svg>
+      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontStyle:"italic",color:C.goldL,marginBottom:8,lineHeight:1.5}}>
+        "Allahumma inni as'aluka husnul khatimah"
+      </div>
+      <div style={{fontSize:10,color:C.muted,fontFamily:"'DM Mono',monospace",letterSpacing:2,marginBottom:16}}>DOA PENUTUP MUHASABAH</div>
+      <div style={{height:1,background:"rgba(196,151,90,.15)",margin:"0 0 16px"}}/>
+      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:2,color:C.sage}}>✓ ENTRI HARI INI TERSIMPAN</div>
+      <div style={{fontSize:12,color:C.muted,marginTop:6,lineHeight:1.7}}>
+        Tahniah kerana meluangkan masa untuk diri sendiri hari ini.<br/>
+        Setiap langkah muhasabah adalah tanda cinta kepada Allah.
+      </div>
+    </div>
+    <SessionFooter onLogout={onLogout} onChangePw={()=>setShowChangePw(true)}/>
+  </div>);
+}
+
+function History({entries,onLogout}) {
+  const [sel,setSel]=useState(today().slice(0,7)); const [det,setDet]=useState(null);
+  const months=[...new Set(Object.keys(entries).map(k=>k.slice(0,7)))].sort().reverse();
+  const me=Object.entries(entries).filter(([k])=>k.startsWith(sel)).sort(([a],[b])=>b.localeCompare(a));
+  return(<div className="wrap fade">
+    <div className="pg-title">Sejarah <em>Entri</em></div><div className="pg-sub">Semua catatan anda</div>
+    {months.length===0?<div className="empty"><div style={{fontSize:48,marginBottom:12}}>📖</div><p>Belum ada entri.</p></div>:<>
+      <div className="mtabs">{months.map(m=><button key={m} className={`mtab ${sel===m?"active":""}`} onClick={()=>setSel(m)}>{mlbl(m)}</button>)}</div>
+      {me.map(([date,e])=><div key={date} className="ecard" onClick={()=>setDet({date,e})}>
+        <div className="edate">{fmtDate(date).toUpperCase()}</div>
+        <div style={{fontSize:20,marginBottom:4}}>{e.mood||"📝"}</div>
+        <div className="eprev">{e.niat||e.luahan||"Entri tersimpan"}</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:8}}>
+          {e.s1&&<span className="etag tg">✨ Syukur</span>}
+          {e.berjaya&&<span className="etag tt">🌱 Pencapaian</span>}
+        </div>
+      </div>)}
+    </>}
+    {det&&<div className="modal-ov" onClick={()=>setDet(null)}><div className="modal" onClick={ev=>ev.stopPropagation()}>
+      <div className="m-handle"/><button className="m-close" onClick={()=>setDet(null)}>✕</button>
+      <div className="edate">{fmtDate(det.date).toUpperCase()}</div>
+      <div style={{fontSize:28,margin:"8px 0"}}>{det.e.mood||"📝"}</div>
+      {det.e.niat&&<><div className="lbl">Niat Pagi</div><p style={{fontSize:13,color:C.mid,marginBottom:14,lineHeight:1.7}}>{det.e.niat}</p></>}
+      {(det.e.s1||det.e.s2||det.e.s3)&&<><div className="lbl">Syukur</div>{[1,2,3].map(i=>det.e[`s${i}`]&&<p key={i} style={{fontSize:13,color:C.mid,marginBottom:4}}>• {det.e[`s${i}`]}</p>)}<div style={{marginBottom:12}}/></>}
+      {det.e.berjaya&&<><div className="lbl">Pencapaian</div><p style={{fontSize:13,color:C.mid,marginBottom:14,lineHeight:1.7}}>{det.e.berjaya}</p></>}
+      {det.e.luahan&&<><div className="lbl">Luahan Hati</div><p style={{fontSize:13,color:C.mid,lineHeight:1.7}}>{det.e.luahan}</p></>}
+    </div></div>}
+    <SessionFooter onLogout={onLogout} onChangePw={()=>setShowChangePw(true)}/>
+  </div>);
+}
+
+function Summary({entries,summaries,onSave,onLogout}) {
+  const [sel,setSel]=useState(today().slice(0,7)); const [busy,setBusy]=useState(false); const [err,setErr]=useState("");
+  const months=[...new Set(Object.keys(entries).map(k=>k.slice(0,7)))].sort().reverse();
+  const me=Object.entries(entries).filter(([k])=>k.startsWith(sel));
+  const ex=summaries[sel];
+  const gen=async()=>{
+    if(!me.length) return; setBusy(true); setErr("");
+    const lines=me.map(([d,e])=>{const p=[];if(e.mood)p.push("Mood:"+e.mood);if(e.niat)p.push("Niat:"+e.niat);if(e.s1||e.s2||e.s3)p.push("Syukur:"+[e.s1,e.s2,e.s3].filter(Boolean).join(";"));if(e.berjaya)p.push("Pencapaian:"+e.berjaya);if(e.luahan)p.push("Luahan:"+e.luahan);return fmtDate(d)+": "+p.join(" | ");}).join("\n\n");
+    try{
+      if(!ANTHROPIC_KEY||ANTHROPIC_KEY==="MASUKKAN_API_KEY_ANDA_DI_SINI"){
+        setErr("API key belum dikonfigurasi. Hubungi @hatisedar.");
+        setBusy(false); return;
+      }
+      const r=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "x-api-key":ANTHROPIC_KEY,
+          "anthropic-version":"2023-06-01",
+          "anthropic-dangerous-direct-browser-access":"true"
+        },
+        body:JSON.stringify({
+          model:"claude-sonnet-4-20250514",
+          max_tokens:1000,
+          messages:[{role:"user",content:"Kamu mentor rohani yang memahami tasawuf dan psikologi Islam. Analisa entri jurnal muhasabah bulan "+mlbl(sel)+" dan berikan ringkasan bermakna dalam Bahasa Melayu.\n\nENTRI JURNAL:\n"+lines+"\n\nSila hasilkan dalam format ini (tanpa markdown):\n\nRINGKASAN BULAN INI\n[2-3 ayat ringkasan perjalanan jiwa]\n\nCORAK YANG DIPERHATIKAN\n[2-3 corak emosi atau tema]\n\nKEKUATAN ANDA BULAN INI\n[2-3 perkara positif]\n\nNASIHAT UNTUK BULAN HADAPAN\n[2-3 cadangan praktikal islamik]\n\nPENUTUP DOA\n[Doa atau kata semangat dari Al-Quran atau Hadis]"}]
+        })
+      });
+      const data=await r.json();
+      if(data.error){ setErr("Ralat: "+data.error.message); setBusy(false); return; }
+      const txt=data.content?.map(b=>b.text||"").join("")||"";
+      if(!txt) throw new Error("Tiada respons dari AI");
+      onSave(sel,{text:txt,generated:new Date().toISOString(),count:me.length});
+    }catch(e){ setErr("Ralat: "+(e.message||"Semak API key dan cuba semula.")); }
+    setBusy(false);
+  };
+  const fmt=txt=>txt.split(/\n(?=[A-Z\u00C0-\u024F][A-Z\u00C0-\u024F])/).filter(Boolean).map((s,i)=>{
+    const ls=s.trim().split("\n"); const h=ls[0]; const b=ls.slice(1).join("\n").trim();
+    return<div key={i} style={{marginBottom:20}}><div style={{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:3,color:C.gold,marginBottom:8}}>{h}</div><div style={{fontSize:13,color:"rgba(255,255,255,.85)",lineHeight:1.9}}>{b.split("\n").map((l,j)=><p key={j} style={{marginBottom:6}}>{l}</p>)}</div></div>;
+  });
+  return(<div className="wrap fade">
+    <div className="pg-title">Ringkasan <em>AI</em></div><div className="pg-sub">Analisa perjalanan jiwa bulanan</div>
+    {months.length===0?<div className="empty"><div style={{fontSize:48,marginBottom:12}}>✨</div><p>Belum ada entri.</p></div>:<>
+      <div className="mtabs">{months.map(m=><button key={m} className={`mtab ${sel===m?"active":""}`} onClick={()=>setSel(m)}>{mlbl(m)}</button>)}</div>
+      <div className="stats-row">
+        <div className="stat-box"><div className="stat-n">{me.length}</div><div className="stat-l">ENTRI</div></div>
+        <div className="stat-box"><div className="stat-n">{me.filter(([,e])=>e.s1||e.s2||e.s3).length}</div><div className="stat-l">HARI SYUKUR</div></div>
+        <div className="stat-box"><div className="stat-n">{me.filter(([,e])=>e.mood==="😊"||e.mood==="🙂").length}</div><div className="stat-l">HARI POSITIF</div></div>
+      </div>
+      {!ex&&!busy&&<div className="card" style={{textAlign:"center"}}><div className="sec-tag" style={{marginBottom:8}}>JANA RINGKASAN AI</div><p style={{fontSize:12,color:C.muted,marginBottom:14}}>{me.length} entri untuk {mlbl(sel)}.</p><button className="btn btn-gold" onClick={gen} disabled={!me.length}>✨ Jana Sekarang</button>{err&&<p style={{fontSize:12,color:"#e88",marginTop:10}}>{err}</p>}</div>}
+      {busy&&<div className="ai-box"><div className="ai-lbl">AI SEDANG MENGANALISA...</div><div><span className="ai-dot"/><span className="ai-dot"/><span className="ai-dot"/><span style={{fontSize:13,color:C.sageL,marginLeft:8}}>Membaca {me.length} entri...</span></div></div>}
+      {ex&&!busy&&<><div className="ai-box"><div className="ai-lbl">RINGKASAN {mlbl(sel).toUpperCase()} — {ex.count} ENTRI</div><div className="ai-content">{fmt(ex.text)}</div></div><div style={{textAlign:"center"}}><button className="btn btn-out btn-sm" onClick={()=>onSave(sel,null)}>🔄 Jana Semula</button></div></>}
+    </>}
+    <SessionFooter onLogout={onLogout} onChangePw={()=>setShowChangePw(true)}/>
+  </div>);
+}
+
+
+/* ── SESSION END FOOTER ── */
+
+function Emosi({entries, onSave, onLogout}) {
+  const [sel, setSel] = useState(today());
+  const e = entries["emosi_"+sel] || {};
+  const f = (k,v) => onSave("emosi_"+sel, {...e, [k]:v});
+
+  const CAUSES = [
+    {id:"keluarga",   label:"Keluarga",       emoji:"🏠"},
+    {id:"kewangan",   label:"Kewangan",       emoji:"💰"},
+    {id:"kesihatan",  label:"Kesihatan",      emoji:"❤️"},
+    {id:"hubungan",   label:"Hubungan",       emoji:"🤝"},
+    {id:"kerja",      label:"Kerja / Tugas",  emoji:"📋"},
+    {id:"diri",       label:"Diri Sendiri",   emoji:"🪞"},
+    {id:"anak",       label:"Anak-anak",      emoji:"👶"},
+    {id:"lain",       label:"Lain-lain",      emoji:"✦"},
+  ];
+
+  const DOA_BY_MOOD = {
+    "😔": {doa:"Allahumma inni a'udhu bika minal hammi wal hazan", src:"Doa menghilangkan kesedihan"},
+    "😟": {doa:"Hasbunallahu wa ni'mal wakeel", src:"Doa ketika risau & cemas"},
+    "😐": {doa:"Allahumma a'inni 'ala dhikrika wa shukrika wa husni 'ibadatik", src:"Doa meminta pertolongan beribadah"},
+    "🙂": {doa:"Alhamdulillahi alladhi bi ni'matihi tatimmus-salihaat", src:"Doa bersyukur atas nikmat ketenangan"},
+    "😊": {doa:"Alhamdulillahi rabbil 'alamin", src:"Doa syukur yang paling agung"},
+  };
+
+  const toggleCause = (id) => {
+    const cur = e.causes || [];
+    f("causes", cur.includes(id) ? cur.filter(x=>x!==id) : [...cur, id]);
+  };
+
+  const doa = e.mood ? DOA_BY_MOOD[e.mood] : null;
+  const intensity = e.intensity || 5;
+
+  return (
+    <div className="wrap fade">
+      <div className="pg-title"><em>Emosi</em> Hati</div>
+      <div className="pg-sub">{fmtDate(sel)}</div>
+
+      {/* Date */}
+      <div className="card card-b">
+        <div className="fg"><div className="lbl">Pilih Tarikh:</div>
+          <input type="date" value={sel} max={today()} onChange={ev=>setSel(ev.target.value)}/>
+        </div>
+      </div>
+
+      {/* Mood selector */}
+      <div className="card card-b">
+        <div className="sec-tag">💛 PERASAAN HATI HARI INI</div>
+        <p style={{fontSize:12,color:C.muted,marginBottom:10}}>Pilih yang paling hampir dengan perasaan anda sekarang:</p>
+        <div className="mood-row">
+          {[
+            {e:"😔",l:"Sedih"},{e:"😟",l:"Risau"},{e:"😐",l:"Biasa"},
+            {e:"🙂",l:"Tenang"},{e:"😊",l:"Gembira"}
+          ].map(m=>(
+            <button key={m.e} className={`mood-btn ${e.mood===m.e?"sel":""}`} onClick={()=>f("mood",m.e)}>
+              <span className="e">{m.e}</span><span className="ml">{m.l}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Intensity slider */}
+      <div className="card card-b">
+        <div className="sec-tag">📊 TAHAP PERASAAN</div>
+        <div className="slider-val">{intensity} <span style={{fontSize:16,color:C.muted}}>/10</span></div>
+        <div className="slider-wrap">
+          <input type="range" min={1} max={10} step={1} value={intensity}
+            onChange={ev=>f("intensity", +ev.target.value)}/>
+        </div>
+        <div className="slider-labels"><span>Lemah / Tenang</span><span>Sangat Kuat</span></div>
+      </div>
+
+      {/* Causes */}
+      <div className="card card-t">
+        <div className="sec-tag">🔍 PUNCA EMOSI INI</div>
+        <p style={{fontSize:12,color:C.muted,marginBottom:2}}>Pilih semua yang berkaitan:</p>
+        <div className="cause-grid">
+          {CAUSES.map(c=>(
+            <button key={c.id} className={`cause-btn ${(e.causes||[]).includes(c.id)?"sel":""}`}
+              onClick={()=>toggleCause(c.id)}>
+              <div className="cause-box">
+                {(e.causes||[]).includes(c.id) &&
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                    <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                }
+              </div>
+              <span className="cause-label">{c.emoji} {c.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Luahan */}
+      <div className="card card-d">
+        <div className="sec-tag">✍️ LUAHAN HATI</div>
+        <div className="fg">
+          <div className="hint">Tulis dengan bebas — tiada yang menghukum di sini.</div>
+          <textarea rows={4} placeholder="Hati saya rasa..." value={e.luahan||""}
+            onChange={ev=>f("luahan",ev.target.value)}/>
+        </div>
+      </div>
+
+      {/* Doa */}
+      {doa && (
+        <div className="emosi-doa">
+          <p>"{doa.doa}"</p>
+          <small>{doa.src}</small>
+        </div>
+      )}
+      {!doa && (
+        <div className="emosi-doa">
+          <p>"Sesungguhnya bersama kesukaran itu ada kemudahan."</p>
+          <small>SURAH AL-INSYIRAH, 94:6</small>
+        </div>
+      )}
+
+      <SessionFooter onLogout={onLogout} onChangePw={()=>setShowChangePw(true)}/>
+    </div>
+  );
+}
+
+
+function ChangePwModal({buyer, onClose, onSuccess}) {
+  const [oldPw, setOldPw]   = useState("");
+  const [newPw, setNewPw]   = useState("");
+  const [confPw, setConfPw] = useState("");
+  const [err, setErr]       = useState("");
+  const [done, setDone]     = useState(false);
+
+  const submit = () => {
+    setErr("");
+    if(!oldPw.trim()) { setErr("Sila masukkan password lama."); return; }
+    if(!newPw.trim()) { setErr("Sila masukkan password baru."); return; }
+    if(newPw.length < 6) { setErr("Password baru mestilah sekurang-kurangnya 6 aksara."); return; }
+    if(newPw !== confPw) { setErr("Password baru tidak sepadan."); return; }
+    if(oldPw.toLowerCase() !== buyer.password.toLowerCase()) { setErr("Password lama tidak betul."); return; }
+    if(newPw.toLowerCase() === oldPw.toLowerCase()) { setErr("Password baru mesti berbeza dari password lama."); return; }
+
+    // Update buyer password in storage
+    const buyers = sget(BUYERS_KEY) || [];
+    const updated = buyers.map(b => b.id === buyer.id ? {...b, password: newPw.trim()} : b);
+    sset(BUYERS_KEY, updated);
+
+    // Update session buyer
+    buyer.password = newPw.trim();
+    setDone(true);
+  };
+
+  return (
+    <div className="modal-ov" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="m-handle"/>
+        <button className="m-close" onClick={onClose}>✕</button>
+
+        {!done ? <>
+          <div style={{marginBottom:20}}>
+            <div className="sec-tag">🔐 TUKAR PASSWORD</div>
+            <p style={{fontSize:13,color:C.muted,marginTop:4,lineHeight:1.6}}>
+              Pilih password baru yang mudah diingat tapi sukar diteka.
+            </p>
+          </div>
+
+          <div className="fg">
+            <div className="lbl">Password Lama:</div>
+            <input type="password" placeholder="Masukkan password semasa..."
+              value={oldPw} onChange={e=>{setOldPw(e.target.value);setErr("");}}/>
+          </div>
+
+          <div className="fg">
+            <div className="lbl">Password Baru:</div>
+            <input type="password" placeholder="Minimum 6 aksara..."
+              value={newPw} onChange={e=>{setNewPw(e.target.value);setErr("");}}/>
+          </div>
+
+          <div className="fg">
+            <div className="lbl">Sahkan Password Baru:</div>
+            <input type="password" placeholder="Taip semula password baru..."
+              value={confPw} onChange={e=>{setConfPw(e.target.value);setErr("");}}
+              onKeyDown={e=>e.key==="Enter"&&submit()}/>
+          </div>
+
+          {err && (
+            <div style={{padding:"10px 14px",background:"rgba(192,57,43,.08)",border:"1px solid rgba(192,57,43,.2)",borderRadius:10,fontSize:12,color:"#c0392b",marginBottom:14}}>
+              {err}
+            </div>
+          )}
+
+          <button className="btn btn-gold" onClick={submit} style={{width:"100%",justifyContent:"center"}}>
+            Tukar Password →
+          </button>
+          <p style={{fontSize:11,color:C.muted,textAlign:"center",marginTop:10,fontFamily:"'DM Mono',monospace"}}>
+            Simpan password baru anda di tempat yang selamat
+          </p>
+        </> : <>
+          <div style={{textAlign:"center",padding:"20px 0"}}>
+            <div style={{fontSize:52,marginBottom:16}}>✅</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,color:C.deep,marginBottom:8}}>
+              Password Berjaya Ditukar!
+            </div>
+            <p style={{fontSize:13,color:C.muted,marginBottom:24,lineHeight:1.7}}>
+              Password anda telah dikemaskini.<br/>
+              Gunakan password baru untuk log masuk akan datang.
+            </p>
+            <div style={{background:C.warm,borderRadius:12,padding:"12px 20px",marginBottom:24,fontFamily:"'DM Mono',monospace",fontSize:12,color:C.mid,border:"1px solid rgba(196,151,90,.15)"}}>
+              Password baru: <strong style={{color:C.goldL}}>{newPw}</strong>
+            </div>
+            <button className="btn btn-gold" onClick={()=>{onSuccess(buyer);}} style={{justifyContent:"center"}}>
+              Selesai ✓
+            </button>
+          </div>
+        </>}
+      </div>
+    </div>
+  );
+}
+
+function SessionFooter({onLogout, onChangePw}) {
+  return (
+    <div style={{maxWidth:620,margin:"0 auto",padding:"0 18px 48px",textAlign:"center"}}>
+      <div style={{height:1,background:"rgba(196,151,90,.12)",marginBottom:24}}/>
+      <div style={{marginBottom:12}}>
+        <svg width="28" height="28" viewBox="0 0 90 90" fill="none" style={{margin:"0 auto",display:"block",opacity:.4}}>
+          <path d="M 26 72 L 26 46 Q 26 24, 45 24 Q 64 24, 64 46 L 64 72 Z" fill="none" stroke="#C4975A" strokeWidth="1.5"/>
+          <line x1="45" y1="65" y2="40" x2="45" stroke="#7A8C6E" strokeWidth="1.2"/>
+          <path d="M 45 53 C 39 47, 35 40, 40 35 C 42 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.8"/>
+          <path d="M 45 53 C 51 47, 55 40, 50 35 C 48 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.6"/>
+          <line x1="22" y1="72" x2="68" y2="72" stroke="#C4975A" strokeWidth="1"/>
+        </svg>
+      </div>
+      <p style={{fontSize:11,color:"#9B8E7A",fontFamily:"'DM Mono',monospace",letterSpacing:2,marginBottom:16}}>HATI SEDAR</p>
+      <button className="btn btn-gold" onClick={onLogout} style={{fontSize:13,padding:"12px 32px"}}>
+        🔒 Tamat Sesi
+      </button>
+      <p style={{fontSize:10,color:"rgba(155,142,122,.5)",marginTop:12,fontFamily:"'DM Mono',monospace",letterSpacing:1}}>
+        Data anda tersimpan selamat
+      </p>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════
+   MAIN APP
+════════════════════════════════════════════ */
+function App() {
+  const [view,setView]   = useState("gate"); // gate | splash | journal | admin
+  const [buyer,setBuyer] = useState(null);
+  const [page,setPage]   = useState("home");
+  const [entries,setE]   = useState({});
+  const [summs,setSumms] = useState({});
+  const [saveSt,setSaveSt] = useState("saved");
+  const [showChangePw, setShowChangePw] = useState(false);
+  const timer = useRef(null);
+
+  // Restore session on load
+  useEffect(()=>{
+    const s = JSON.parse(sessionStorage.getItem(SESSION_KEY)||"null");
+    if(s?.buyerId){
+      const buyers = sget(BUYERS_KEY)||[];
+      const b = buyers.find(x=>x.id===s.buyerId&&x.active);
+      if(b){ setBuyer(b); loadJ(b.id); setView("splash"); }
+    }
+  },[]);
+
+  const loadJ = id => {
+    setE(sget(JOURNAL_PRE+"e_"+id)||{});
+    setSumms(sget(JOURNAL_PRE+"s_"+id)||{});
+  };
+
+  const handleBuyer = b => {
+    setBuyer(b); sessionStorage.setItem(SESSION_KEY,JSON.stringify({buyerId:b.id}));
+    loadJ(b.id); setView("splash");
+  };
+
+  const logout = () => {
+    sessionStorage.removeItem(SESSION_KEY);
+    setBuyer(null); setE({}); setSumms({});
+    setView("gate"); setPage("home");
+  };
+
+  const saveEntry = useCallback((date,data)=>{
+    if(!buyer) return;
+    setE(prev=>{
+      const next={...prev,[date]:data};
+      setSaveSt("saving");
+      if(timer.current) clearTimeout(timer.current);
+      timer.current=setTimeout(()=>{ sset(JOURNAL_PRE+"e_"+buyer.id,next); setSaveSt("saved"); },700);
+      return next;
+    });
+  },[buyer]);
+
+  const saveSumm = useCallback((month,data)=>{
+    if(!buyer) return;
+    setSumms(prev=>{
+      const next=data?{...prev,[month]:data}:Object.fromEntries(Object.entries(prev).filter(([k])=>k!==month));
+      sset(JOURNAL_PRE+"s_"+buyer.id,next);
+      return next;
+    });
+  },[buyer]);
+
+  const TABS = [{id:"home",l:"Utama",e:"🏠"},{id:"harian",l:"Harian",e:"☀️"},{id:"emosi",l:"Emosi",e:"💛"},{id:"history",l:"Sejarah",e:"📖"},{id:"summary",l:"Ringkasan AI",e:"✨"}];
+
+  return(<>
+    <style>{STYLE}</style>
+    {view==="admin" && <Admin onLogout={()=>setView("gate")}/>}
+    {view==="gate"  && <Gate onBuyer={handleBuyer} onAdmin={()=>setView("admin")}/>}
+    {showChangePw && buyer && (
+      <ChangePwModal
+        buyer={buyer}
+        onClose={()=>setShowChangePw(false)}
+        onSuccess={(b)=>{setBuyer({...b});setShowChangePw(false);}}
+      />
+    )}
+    {view==="splash"&&
+      <div className="splash">
+        <div className="orb orb1"/><div className="orb orb2"/>
+        <div className="splash-geo">✦</div>
+        <button className="s-logout" onClick={logout}>Log Keluar</button>
+        <div style={{marginBottom:24,animation:"up .6s .15s both",display:"flex",justifyContent:"center"}}>
+        <svg width="90" height="90" viewBox="0 0 90 90" fill="none">
+          <circle cx="45" cy="45" r="42" fill="#1A1408" stroke="#C4975A" strokeWidth="0.6" opacity="0.45"/>
+          <path d="M 26 72 L 26 46 Q 26 24, 45 24 Q 64 24, 64 46 L 64 72 Z" fill="none" stroke="#C4975A" strokeWidth="1.2"/>
+          <path d="M 30 70 L 30 47 Q 30 29, 45 29 Q 60 29, 60 47 L 60 70 Z" fill="none" stroke="#C4975A" strokeWidth="0.4" opacity="0.2"/>
+          <line x1="45" y1="65" y2="40" x2="45" stroke="#7A8C6E" strokeWidth="1.1"/>
+          <path d="M 45 53 C 39 47, 35 40, 40 35 C 42 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.85"/>
+          <path d="M 45 53 C 51 47, 55 40, 50 35 C 48 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.65"/>
+          <ellipse cx="45" cy="34" rx="2" ry="3" fill="#B8C4AD" opacity="0.9"/>
+          <line x1="22" y1="72" x2="68" y2="72" stroke="#C4975A" strokeWidth="1"/>
+          <line x1="18" y1="76" x2="72" y2="76" stroke="#C4975A" strokeWidth="0.4" opacity="0.35"/>
+          <line x1="45" y1="16" x2="45" y2="23" stroke="#C4975A" strokeWidth="0.7" opacity="0.6"/>
+          <line x1="41.5" y1="19.5" x2="48.5" y2="19.5" stroke="#C4975A" strokeWidth="0.7" opacity="0.6"/>
+          <line x1="42.6" y1="16.8" x2="47.4" y2="22.2" stroke="#C4975A" strokeWidth="0.7" opacity="0.6"/>
+          <line x1="47.4" y1="16.8" x2="42.6" y2="22.2" stroke="#C4975A" strokeWidth="0.7" opacity="0.6"/>
+        </svg>
+      </div>
+        <div className="s-badge">Jurnal Digital · Muhasabah Diri</div>
+        <h1 className="s-title">Muhasabah<br/><em>Journal</em></h1>
+        <div className="s-rule"/>
+        <p className="s-sub">Jurnal harian untuk mengenal diri, mensyukuri nikmat, dan sedar akan kehadiran Allah.</p>
+        <button className="s-btn" onClick={()=>setView("journal")}>{Object.keys(entries).length>0?"Sambung Menulis →":"Mula Sekarang →"}</button>
+        <p className="s-name">Selamat datang, {buyer?.name}</p>
+      </div>
+    }
+    {view==="journal"&&<>
+      <nav className="nav">
+        <div className="nav-brand">Muhasabah</div>
+        {TABS.map(t=><button key={t.id} className={`nav-tab ${page===t.id?"active":""}`} onClick={()=>setPage(t.id)}>{t.e} {t.l}</button>)}
+        <div className="nav-right">
+          <div className={`save-dot ${saveSt}`}>{saveSt==="saving"?"• menyimpan":"✓"}</div>
+          <button className="nav-out" onClick={logout}>Keluar</button>
+        </div>
+      </nav>
+      {page==="home"    &&<Home     entries={entries} nav={setPage} name={buyer?.name||""} onLogout={logout}/>}
+      {page==="harian"  &&<Harian   entries={entries} onSave={saveEntry} onLogout={logout}/>}
+      {page==="emosi"   &&<Emosi    entries={entries} onSave={saveEntry} onLogout={logout}/> }
+      {page==="history" &&<History  entries={entries} onLogout={logout}/>}
+      {page==="summary" &&<Summary  entries={entries} summaries={summs} onSave={saveSumm} onLogout={logout}/>}
+    </>}
+  </>);
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
