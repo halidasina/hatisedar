@@ -99,17 +99,32 @@ const DEMO_BUYERS = [
 
 /* ── STORAGE ── */
 const sget = k => {
-  if(k === BUYERS_KEY){
-    try{
-      const stored = JSON.parse(localStorage.getItem(k)||"[]");
-      const storedIds = stored.map(b=>b.id);
-      const extras = DEMO_BUYERS.filter(d=>!storedIds.includes(d.id));
-      return [...stored, ...extras];
-    }catch{ return DEMO_BUYERS; }
-  }
   try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch{ return null; }
 };
 const sset = (k,v) => { try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} };
+const sgetBuyers = async () => {
+  try{
+    const r = await fetch("https://mysouljournal.netlify.app/.netlify/functions/get-buyers");
+    const data = await r.json();
+    const stored = data.buyers || [];
+    const ids = stored.map(b=>b.id);
+    return [...stored,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
+  }catch{
+    const stored=JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
+    const ids=stored.map(b=>b.id);
+    return [...stored,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
+  }
+};
+const saveBuyers = async (buyers) => {
+  try{
+    await fetch("https://mysouljournal.netlify.app/.netlify/functions/save-buyers",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({buyers})
+    });
+    sset(BUYERS_KEY, buyers);
+  }catch{ sset(BUYERS_KEY, buyers); }
+};
 
 /* ════════════════════════════════════════════
    STYLES (injected)
@@ -290,9 +305,9 @@ function Admin({onLogout}) {
   const [toast,setToast]   = useState("");
   const [cfm,setCfm]       = useState(null);
 
-  useEffect(()=>{ setBuyers(sget(BUYERS_KEY)||[]); },[]);
+  useEffect(()=>{sgetBuyers().then(list=>setBuyers(list.filter(b=>!b.id.startsWith('demo'))));},[]);
 
-  const save = list => { setBuyers(list); sset(BUYERS_KEY,list); };
+  const save = list => { setBuyers(list); saveBuyers(list); };
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),3000); };
 
   const addBuyer = () => {
@@ -405,19 +420,19 @@ function Gate({onBuyer, onAdmin}) {
   const [adm,setAdm] = useState(false);
   const [apw,setApw] = useState("");
 
-  const login = () => {
+  const login = async() => {
     if(!pw.trim()){setErr("Sila masukkan password."); return;}
     setBusy(true); setErr("");
-    setTimeout(()=>{
-      const buyers = sget(BUYERS_KEY)||[];
+    try{
+      const buyers = await sgetBuyers();
       const b = buyers.find(x=>x.active && x.password.toLowerCase()===pw.trim().toLowerCase());
       if(b){ onBuyer(b); }
       else { setErr("Password salah atau tidak aktif. Hubungi @hatisedar."); }
-      setBusy(false);
-    },500);
+    }catch(e){ setErr("Masalah sambungan. Cuba semula."); }
+    setBusy(false);
   };
 
-  const adminLogin = () => {
+  const adminLogin = async() => {
     if(apw===ADMIN_PW){ onAdmin(); }
     else { setErr("Password admin salah."); }
   };
@@ -780,7 +795,7 @@ function ChangePwModal({buyer, onClose, onSuccess}) {
   const [err, setErr]       = useState("");
   const [done, setDone]     = useState(false);
 
-  const submit = () => {
+  const submit = async() => {
     setErr("");
     if(!oldPw.trim()) { setErr("Sila masukkan password lama."); return; }
     if(!newPw.trim()) { setErr("Sila masukkan password baru."); return; }
@@ -789,14 +804,21 @@ function ChangePwModal({buyer, onClose, onSuccess}) {
     if(oldPw.toLowerCase() !== buyer.password.toLowerCase()) { setErr("Password lama tidak betul."); return; }
     if(newPw.toLowerCase() === oldPw.toLowerCase()) { setErr("Password baru mesti berbeza dari password lama."); return; }
 
-    // Update buyer password in storage
-    const buyers = sget(BUYERS_KEY) || [];
-    const updated = buyers.map(b => b.id === buyer.id ? {...b, password: newPw.trim()} : b);
-    sset(BUYERS_KEY, updated);
-
-    // Update session buyer
-    buyer.password = newPw.trim();
-    setDone(true);
+    // Update password on server
+    try{
+      const r=await fetch("https://mysouljournal.netlify.app/.netlify/functions/update-password",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({buyerId:buyer.id,oldPassword:oldPw.trim(),newPassword:newPw.trim()})
+      });
+      const data=await r.json();
+      if(data.error){setErr(data.error);return;}
+      const local=sget(BUYERS_KEY)||[];
+      const updated=local.map(b=>b.id===buyer.id?{...b,password:newPw.trim()}:b);
+      sset(BUYERS_KEY,updated);
+      buyer.password=newPw.trim();
+      setDone(true);
+    }catch(e){setErr("Ralat menyimpan. Cuba semula.");}
   };
 
   return (
@@ -913,7 +935,7 @@ function App() {
   useEffect(()=>{
     const s = JSON.parse(sessionStorage.getItem(SESSION_KEY)||"null");
     if(s?.buyerId){
-      const buyers = sget(BUYERS_KEY)||[];
+      const buyers = await sgetBuyers();
       const b = buyers.find(x=>x.id===s.buyerId&&x.active);
       if(b){ setBuyer(b); loadJ(b.id); setView("splash"); }
     }
