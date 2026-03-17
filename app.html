@@ -62,7 +62,7 @@ const { useState, useEffect, useCallback, useRef } = React;
    CONFIG — TUKAR DI SINI
 ══════════════════════════════════════ */
 const ADMIN_PW      = "admin@hatisedar2026"; // ← tukar!
-const ANTHROPIC_KEY = "MASUKKAN_API_KEY_ANDA_DI_SINI"; // ← masukkan Anthropic API key
+const ANTHROPIC_KEY = ""; // Handled via Netlify Function
 const BUYERS_KEY    = "hs_buyers";
 const SESSION_KEY   = "hs_session";
 const JOURNAL_PRE   = "hs_j_";
@@ -612,27 +612,16 @@ function Summary({entries,summaries,onSave,onLogout,onChangePw}) {
     if(!me.length) return; setBusy(true); setErr("");
     const lines=me.map(([d,e])=>{const p=[];if(e.mood)p.push("Mood:"+e.mood);if(e.niat)p.push("Niat:"+e.niat);if(e.s1||e.s2||e.s3)p.push("Syukur:"+[e.s1,e.s2,e.s3].filter(Boolean).join(";"));if(e.berjaya)p.push("Pencapaian:"+e.berjaya);if(e.luahan)p.push("Luahan:"+e.luahan);return fmtDate(d)+": "+p.join(" | ");}).join("\n\n");
     try{
-      if(!ANTHROPIC_KEY||ANTHROPIC_KEY==="MASUKKAN_API_KEY_ANDA_DI_SINI"){
-        setErr("API key belum dikonfigurasi. Hubungi @hatisedar.");
-        setBusy(false); return;
-      }
-      const r=await fetch("https://api.anthropic.com/v1/messages",{
+      // API key handled server-side
+      const prompt="Kamu mentor rohani yang memahami tasawuf dan psikologi Islam. Analisa entri jurnal muhasabah bulan "+mlbl(sel)+" dan berikan ringkasan bermakna dalam Bahasa Melayu.\n\nENTRI JURNAL:\n"+lines+"\n\nSila hasilkan dalam format ini (tanpa markdown):\n\nRINGKASAN BULAN INI\n[2-3 ayat ringkasan perjalanan jiwa]\n\nCORAK YANG DIPERHATIKAN\n[2-3 corak emosi atau tema]\n\nKEKUATAN ANDA BULAN INI\n[2-3 perkara positif]\n\nNASIHAT UNTUK BULAN HADAPAN\n[2-3 cadangan praktikal islamik]\n\nPENUTUP DOA\n[Doa atau kata semangat dari Al-Quran atau Hadis]";
+      const r=await fetch("https://inquisitive-hotteok-c61b82.netlify.app/.netlify/functions/reflect",{
         method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-          "x-api-key":ANTHROPIC_KEY,
-          "anthropic-version":"2023-06-01",
-          "anthropic-dangerous-direct-browser-access":"true"
-        },
-        body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:1000,
-          messages:[{role:"user",content:"Kamu mentor rohani yang memahami tasawuf dan psikologi Islam. Analisa entri jurnal muhasabah bulan "+mlbl(sel)+" dan berikan ringkasan bermakna dalam Bahasa Melayu.\n\nENTRI JURNAL:\n"+lines+"\n\nSila hasilkan dalam format ini (tanpa markdown):\n\nRINGKASAN BULAN INI\n[2-3 ayat ringkasan perjalanan jiwa]\n\nCORAK YANG DIPERHATIKAN\n[2-3 corak emosi atau tema]\n\nKEKUATAN ANDA BULAN INI\n[2-3 perkara positif]\n\nNASIHAT UNTUK BULAN HADAPAN\n[2-3 cadangan praktikal islamik]\n\nPENUTUP DOA\n[Doa atau kata semangat dari Al-Quran atau Hadis]"}]
-        })
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({prompt})
       });
       const data=await r.json();
-      if(data.error){ setErr("Ralat: "+data.error.message); setBusy(false); return; }
-      const txt=data.content?.map(b=>b.text||"").join("")||"";
+      if(data.error){ setErr("Ralat: "+data.error); setBusy(false); return; }
+      const txt=data.text||"";
       if(!txt) throw new Error("Tiada respons dari AI");
       onSave(sel,{text:txt,generated:new Date().toISOString(),count:me.length});
     }catch(e){ setErr("Ralat: "+(e.message||"Semak API key dan cuba semula.")); }
