@@ -614,7 +614,7 @@ function Summary({entries,summaries,onSave,onLogout,onChangePw}) {
     try{
       // API key handled server-side
       const prompt="Kamu mentor rohani yang memahami tasawuf dan psikologi Islam. Analisa entri jurnal muhasabah bulan "+mlbl(sel)+" dan berikan ringkasan bermakna dalam Bahasa Melayu.\n\nENTRI JURNAL:\n"+lines+"\n\nSila hasilkan dalam format ini (tanpa markdown):\n\nRINGKASAN BULAN INI\n[2-3 ayat ringkasan perjalanan jiwa]\n\nCORAK YANG DIPERHATIKAN\n[2-3 corak emosi atau tema]\n\nKEKUATAN ANDA BULAN INI\n[2-3 perkara positif]\n\nNASIHAT UNTUK BULAN HADAPAN\n[2-3 cadangan praktikal islamik]\n\nPENUTUP DOA\n[Doa atau kata semangat dari Al-Quran atau Hadis]";
-      const r=await fetch("https://inquisitive-hotteok-c61b82.netlify.app/.netlify/functions/reflect",{
+      const r=await fetch("https://mysouljournal.netlify.app/.netlify/functions/reflect",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({prompt})
