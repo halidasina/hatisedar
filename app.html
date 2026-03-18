@@ -12,8 +12,8 @@
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body,#root{min-height:100vh;}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:#F5F0E8;}
+html,body,#root{width:100%;min-height:100vh;margin:0;padding:0;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#F5F0E8;width:100%;margin:0;padding:0;}
 
 /* EMOSI PAGE */
 .slider-wrap{margin:8px 0 4px;}
@@ -131,11 +131,11 @@ const saveBuyers = async (buyers) => {
 ════════════════════════════════════════════ */
 const STYLE = `
 /* GATE */
-.gate{min-height:100vh;background:${C.deep};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;position:relative;overflow:hidden;}
+.gate{width:100%;min-height:100vh;background:${C.deep};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;position:relative;overflow:hidden;}
 .orb{position:absolute;border-radius:50%;pointer-events:none;}
 .orb1{width:500px;height:500px;background:radial-gradient(circle,rgba(196,151,90,.1) 0%,transparent 65%);top:-150px;right:-150px;}
 .orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(91,138,139,.08) 0%,transparent 65%);bottom:-120px;left:-120px;}
-.gate-box{background:rgba(253,250,244,.04);border:1px solid rgba(196,151,90,.2);border-radius:24px;padding:40px 36px;width:100%;max-width:450px;text-align:center;}
+.gate-box{background:rgba(253,250,244,.04);border:1px solid rgba(196,151,90,.2);border-radius:24px;padding:40px 36px;width:100%;max-width:450px;text-align:center;margin:0 auto;}
 .gate-icon{font-size:48px;margin-bottom:16px;}
 .gate-title{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;color:white;margin-bottom:4px;}
 .gate-title em{font-style:italic;color:${C.goldL};}
