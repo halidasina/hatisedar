@@ -311,7 +311,7 @@ function Admin({onLogout}) {
   const [search,setSearch] = useState("");
   const [name,setName]     = useState("");
   const [email,setEmail]   = useState("");
-  const [pw,setPw]         = useState(genPW());
+  const [pw,setPw]         = useState(()=>genPW());
   const [toast,setToast]   = useState("");
   const [cfm,setCfm]       = useState(null);
 
@@ -465,13 +465,18 @@ function Gate({onBuyer, onAdmin}) {
     setBusy(true); setErr("");
     try{
       const buyers = await sgetBuyers();
-      const b = buyers.find(x=>x.active &&
-        (x.email||"").toLowerCase()===email.trim().toLowerCase() &&
-        x.password===pw.trim()
-      );
+      const emailLower = email.trim().toLowerCase();
+      const pwTrim = pw.trim();
+      const b = buyers.find(x=>{
+        const emailMatch = (x.email||"").toLowerCase()===emailLower;
+        const pwMatch = x.password===pwTrim;
+        const isActive = x.active;
+        if(emailMatch) console.log(`Found email match: ${x.email}, pw check: stored='${x.password}' vs entered='${pwTrim}' => ${pwMatch}, active=${isActive}`);
+        return isActive && emailMatch && pwMatch;
+      });
       if(b){ onBuyer(b); }
       else { setErr("Emel atau password salah. Sila cuba semula."); }
-    }catch(e){ setErr("Masalah sambungan. Cuba semula."); }
+    }catch(e){ console.error("Login error:", e); setErr("Masalah sambungan. Cuba semula."); }
     setBusy(false);
   };
 
