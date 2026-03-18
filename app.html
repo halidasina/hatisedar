@@ -12,8 +12,9 @@
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body,#root{width:100%;min-height:100vh;margin:0;padding:0;}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:#F5F0E8;width:100%;margin:0;padding:0;}
+html{width:100%;height:100%;margin:0;padding:0;}
+body{width:100%;height:100%;margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif;background:#F5F0E8;}
+#root{width:100%;height:100%;margin:0;padding:0;display:grid;grid-template-columns:1fr;grid-template-rows:1fr;}
 
 /* EMOSI PAGE */
 .slider-wrap{margin:8px 0 4px;}
@@ -131,11 +132,11 @@ const saveBuyers = async (buyers) => {
 ════════════════════════════════════════════ */
 const STYLE = `
 /* GATE */
-.gate{width:100%;min-height:100vh;background:${C.deep};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;position:relative;overflow:hidden;}
+.gate{width:100%;height:100%;min-height:100vh;background:${C.deep};display:grid;place-items:center;padding:32px;position:relative;overflow:hidden;}
 .orb{position:absolute;border-radius:50%;pointer-events:none;}
 .orb1{width:500px;height:500px;background:radial-gradient(circle,rgba(196,151,90,.1) 0%,transparent 65%);top:-150px;right:-150px;}
 .orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(91,138,139,.08) 0%,transparent 65%);bottom:-120px;left:-120px;}
-.gate-box{background:rgba(253,250,244,.04);border:1px solid rgba(196,151,90,.2);border-radius:24px;padding:40px 36px;width:100%;max-width:450px;text-align:center;margin:0 auto;}
+.gate-box{background:rgba(253,250,244,.04);border:1px solid rgba(196,151,90,.2);border-radius:24px;padding:40px 36px;width:100%;max-width:450px;text-align:center;margin:0;justify-self:center;}
 .gate-icon{font-size:48px;margin-bottom:16px;}
 .gate-title{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;color:white;margin-bottom:4px;}
 .gate-title em{font-style:italic;color:${C.goldL};}
@@ -465,17 +466,27 @@ function Gate({onBuyer, onAdmin}) {
     setBusy(true); setErr("");
     try{
       const buyers = await sgetBuyers();
-      const emailLower = email.trim().toLowerCase();
-      const pwTrim = pw.trim();
+      const emailNorm = email.trim().toLowerCase().replace(/\s+/g,'');
+      const pwNorm = pw.trim();
+      console.log("Login attempt with email:", emailNorm, "pw:", pwNorm);
+      console.log("Available buyers:", buyers.map(b=>({id:b.id, email:b.email, pw:b.password, active:b.active})));
       const b = buyers.find(x=>{
-        const emailMatch = (x.email||"").toLowerCase()===emailLower;
-        const pwMatch = x.password===pwTrim;
-        const isActive = x.active;
-        if(emailMatch) console.log(`Found email match: ${x.email}, pw check: stored='${x.password}' vs entered='${pwTrim}' => ${pwMatch}, active=${isActive}`);
-        return isActive && emailMatch && pwMatch;
+        if(!x.active) return false;
+        const storedEmailNorm = (x.email||"").trim().toLowerCase().replace(/\s+/g,'');
+        const storedPwNorm = (x.password||"").trim();
+        const emailMatch = storedEmailNorm === emailNorm;
+        const pwMatch = storedPwNorm === pwNorm;
+        console.log(`Checking: email='${x.email}' (norm='${storedEmailNorm}') match=${emailMatch}, pw='${x.password}' (norm='${storedPwNorm}') match=${pwMatch}, active=${x.active}`);
+        return emailMatch && pwMatch;
       });
-      if(b){ onBuyer(b); }
-      else { setErr("Emel atau password salah. Sila cuba semula."); }
+      if(b){ 
+        console.log("Login successful for:", b.email);
+        onBuyer(b); 
+      }
+      else { 
+        console.log("Login failed: no matching buyer found");
+        setErr("Emel atau password salah. Sila cuba semula."); 
+      }
     }catch(e){ console.error("Login error:", e); setErr("Masalah sambungan. Cuba semula."); }
     setBusy(false);
   };
