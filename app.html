@@ -100,52 +100,58 @@ const DEMO_BUYERS = [
 
 /* ── STORAGE ── */
 const sget = k => {
-  try{ const v=localStorage.getItem(k); const parsed = v?JSON.parse(v):null; console.log(`Retrieved ${k}:`, parsed); return parsed; }catch(e){ console.error(`Failed to retrieve ${k}:`, e); return null; }
+  try{ const v=localStorage.getItem(k); const parsed = v?JSON.parse(v):null; console.log(`[sget] Retrieved ${k}:`, parsed); return parsed; }catch(e){ console.error(`[sget] Failed to retrieve ${k}:`, e); return null; }
 };
-const sset = (k,v) => { try{ localStorage.setItem(k,JSON.stringify(v)); console.log(`Stored ${k}:`, v); }catch(e){ console.error(`Failed to store ${k}:`, e); } };
+const sset = (k,v) => { try{ localStorage.setItem(k,JSON.stringify(v)); console.log(`[sset] Stored ${k}:`, v); }catch(e){ console.error(`[sset] Failed to store ${k}:`, e); } };
 const sgetBuyers = async () => {
+  console.log("[sgetBuyers] Starting buyer fetch...");
+  try{
+    const r = await fetch("https://mysouljournal.netlify.app/.netlify/functions/get-buyers");
+    if(!r.ok) throw new Error(`Server error: ${r.status}`);
+    const data = await r.json();
+    const serverBuyers = data.buyers || [];
+    console.log("[sgetBuyers] Server returned:", serverBuyers);
+    if(serverBuyers && Array.isArray(serverBuyers)){
+      sset(BUYERS_KEY, serverBuyers);
+      const ids = serverBuyers.map(b=>b.id);
+      const result = [...serverBuyers,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
+      console.log("[sgetBuyers] Final result:", result);
+      return result;
+    }
+  }catch(e){
+    console.warn("[sgetBuyers] Server fetch failed:", e);
+  }
   try{
     const local = JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
-    console.log("[sgetBuyers] Local storage buyers:", local);
-    if(local && local.length > 0){
+    console.log("[sgetBuyers] Fallback to local storage:", local);
+    if(local && Array.isArray(local) && local.length > 0){
       const ids = local.map(b=>b.id);
       return [...local,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
     }
-    try{
-      console.log("[sgetBuyers] Attempting server fetch...");
-      const r = await fetch("https://mysouljournal.netlify.app/.netlify/functions/get-buyers");
-      const data = await r.json();
-      const stored = data.buyers || [];
-      console.log("[sgetBuyers] Server buyers:", stored);
-      if(stored && stored.length > 0){
-        sset(BUYERS_KEY, stored);
-        const ids = stored.map(b=>b.id);
-        return [...stored,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
-      }
-    }catch(e){ console.warn("[sgetBuyers] Server fetch failed:", e); }
-    const ids = local.map(b=>b.id);
-    return [...local,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
-  }catch(e){
-    console.error("[sgetBuyers] Fatal error:", e);
-    const ids = DEMO_BUYERS.map(b=>b.id);
-    return DEMO_BUYERS;
-  }
+  }catch(e){ console.error("[sgetBuyers] Local storage error:", e); }
+  console.log("[sgetBuyers] Returning DEMO_BUYERS only");
+  return DEMO_BUYERS;
 };
 const saveBuyers = async (buyers) => {
+  console.log("[saveBuyers] Attempting to save:", buyers);
   try{
+    const r = await fetch("https://mysouljournal.netlify.app/.netlify/functions/save-buyers",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({buyers})
+    });
+    if(!r.ok) throw new Error(`Server error: ${r.status}`);
+    const data = await r.json();
+    console.log("[saveBuyers] Server response:", data);
     sset(BUYERS_KEY, buyers);
-    console.log("[saveBuyers] Saved to local storage:", buyers);
-    try{
-      console.log("[saveBuyers] Attempting server save...");
-      const r = await fetch("https://mysouljournal.netlify.app/.netlify/functions/save-buyers",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({buyers})
-      });
-      const data = await r.json();
-      console.log("[saveBuyers] Server response:", data);
-    }catch(e){ console.warn("[saveBuyers] Server save failed:", e); }
-  }catch(e){ console.error("[saveBuyers] Fatal error:", e); }
+    console.log("[saveBuyers] Also saved to local storage");
+    return true;
+  }catch(e){
+    console.error("[saveBuyers] Server save failed:", e);
+    sset(BUYERS_KEY, buyers);
+    console.log("[saveBuyers] Saved to local storage as fallback");
+    return false;
+  }
 };
 
 /* ════════════════════════════════════════════
@@ -337,50 +343,61 @@ function Admin({onLogout}) {
   const [toast,setToast]   = useState("");
   const [cfm,setCfm]       = useState(null);
 
-  useEffect(()=>{
-    const migrate = async() => {
+  const loadBuyers = async() => {
+    console.log("[Admin] Loading buyers...");
+    try{
+      const r = await fetch("https://mysouljournal.netlify.app/.netlify/functions/get-buyers");
+      if(!r.ok) throw new Error(`Server error: ${r.status}`);
+      const data = await r.json();
+      const serverBuyers = data.buyers || [];
+      console.log("[Admin] Server buyers:", serverBuyers);
+      setBuyers(serverBuyers);
+      sset(BUYERS_KEY, serverBuyers);
+    }catch(e){
+      console.warn("[Admin] Server fetch failed:", e);
       try{
-        const r = await fetch("https://mysouljournal.netlify.app/.netlify/functions/get-buyers");
-        const data = await r.json();
-        const serverBuyers = data.buyers || [];
-        const localBuyers = JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
-        
-        if(serverBuyers.length === 0 && localBuyers.length > 0){
-          await fetch("https://mysouljournal.netlify.app/.netlify/functions/save-buyers",{
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({buyers:localBuyers})
-          });
-          setBuyers(localBuyers);
-        } else {
-          setBuyers(serverBuyers);
-        }
-      }catch(e){
         const local = JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
+        console.log("[Admin] Using local buyers:", local);
         setBuyers(local);
+      }catch(e2){
+        console.error("[Admin] Failed to load any buyers:", e2);
+        setBuyers([]);
       }
-    };
-    migrate();
+    }
+  };
+
+  useEffect(()=>{
+    loadBuyers();
   },[]);
 
-  const save = list => { setBuyers(list); saveBuyers(list); };
+  const save = async (list) => { 
+    console.log("[Admin] Saving buyers:", list);
+    setBuyers(list); 
+    const result = await saveBuyers(list);
+    if(result){
+      showToast("✓ Tersimpan ke server");
+    } else {
+      showToast("⚠ Tersimpan secara lokal sahaja");
+    }
+  };
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),3000); };
 
-  const addBuyer = () => {
+  const addBuyer = async () => {
     if(!name.trim()||!email.trim()||!pw.trim()){showToast("Nama, emel & password diperlukan!");return;}
     const eExists = buyers.find(b=>b.email&&b.email.toLowerCase()===email.trim().toLowerCase());
     if(eExists){showToast("Alamat emel sudah digunakan!");return;}
     const b={id:genId(),name:name.trim(),email:email.trim(),password:pw.trim(),createdAt:today(),active:true};
-    save([...buyers,b]);
+    console.log("[Admin] Adding buyer:", b);
+    await save([...buyers,b]);
     setName(""); setEmail(""); setPw(genPW());
     showToast("✓ Pembeli ditambah!");
   };
 
-  const toggle   = id => save(buyers.map(b=>b.id===id?{...b,active:!b.active}:b));
-  const resetPw  = id => { const p=prompt("Password baru untuk pengguna ini:"); if(!p||!p.trim()) return; save(buyers.map(b=>b.id===id?{...b,password:p.trim()}:b)); showToast("Password berjaya ditukar!"); };
-  const delBuyer = id => { save(buyers.filter(b=>b.id!==id)); setCfm(null); showToast("Pembeli dipadam."); };
-  const copyEmail = e  => { try{navigator.clipboard.writeText(e);}catch{} showToast("Disalin: "+e); };
-  const copyPw   = p  => { try{navigator.clipboard.writeText(p);}catch{} showToast("Disalin: "+p); };
+  const toggle   = id => { console.log("[Admin] Toggling buyer:", id); save(buyers.map(b=>b.id===id?{...b,active:!b.active}:b)); };
+  const resetPw  = id => { const p=prompt("Password baru untuk pengguna ini:"); if(!p||!p.trim()) return; console.log("[Admin] Resetting password for:", id); save(buyers.map(b=>b.id===id?{...b,password:p.trim()}:b)); showToast("Password berjaya ditukar!"); };
+  const delBuyer = id => { console.log("[Admin] Deleting buyer:", id); save(buyers.filter(b=>b.id!==id)); setCfm(null); showToast("Pembeli dipadam."); };
+  const copyEmail = e  => { try{navigator.clipboard.writeText(e);}catch{} console.log("[Admin] Copied email:", e); showToast("Disalin: "+e); };
+  const copyPw   = p  => { try{navigator.clipboard.writeText(p);}catch{} console.log("[Admin] Copied password:", p); showToast("Disalin: "+p); };
 
   const active = buyers.filter(b=>b.active).length;
   const shown  = buyers.filter(b=>{
@@ -485,36 +502,62 @@ function Gate({onBuyer, onAdmin}) {
     if(!email.trim()){setErr("Sila masukkan alamat emel anda."); return;}
     if(!pw.trim()){setErr("Sila masukkan password."); return;}
     setBusy(true); setErr("");
+    console.log("\n=== LOGIN ATTEMPT ===");
+    console.log("[Gate] Email entered:", email);
+    console.log("[Gate] Password entered:", pw);
     try{
+      console.log("[Gate] Fetching buyers...");
       const buyers = await sgetBuyers();
+      console.log("[Gate] Total buyers received:", buyers.length);
+      console.log("[Gate] Buyers list:", buyers.map(b=>({id:b.id, name:b.name, email:b.email, password:b.password, active:b.active})));
+      
       const emailNorm = email.trim().toLowerCase().replace(/\s+/g,'');
       const pwNorm = pw.trim();
-      console.log("Login attempt with email:", emailNorm, "pw:", pwNorm);
-      console.log("Available buyers:", buyers.map(b=>({id:b.id, email:b.email, pw:b.password, active:b.active})));
+      console.log("[Gate] Normalized email:", emailNorm);
+      console.log("[Gate] Normalized password:", pwNorm);
+      
+      let found = false;
       const b = buyers.find(x=>{
-        if(!x.active) return false;
+        if(!x.active){
+          console.log(`[Gate] Skipping inactive buyer: ${x.email}`);
+          return false;
+        }
         const storedEmailNorm = (x.email||"").trim().toLowerCase().replace(/\s+/g,'');
         const storedPwNorm = (x.password||"").trim();
         const emailMatch = storedEmailNorm === emailNorm;
         const pwMatch = storedPwNorm === pwNorm;
-        console.log(`Checking: email='${x.email}' (norm='${storedEmailNorm}') match=${emailMatch}, pw='${x.password}' (norm='${storedPwNorm}') match=${pwMatch}, active=${x.active}`);
+        console.log(`[Gate] Checking buyer: email='${x.email}' (norm='${storedEmailNorm}') emailMatch=${emailMatch}, pw='${x.password}' (norm='${storedPwNorm}') pwMatch=${pwMatch}`);
+        if(emailMatch && pwMatch) found = true;
         return emailMatch && pwMatch;
       });
+      
       if(b){ 
-        console.log("Login successful for:", b.email);
+        console.log("[Gate] ✓ LOGIN SUCCESS for:", b.email);
+        console.log("=== LOGIN ATTEMPT END ===");
         onBuyer(b); 
       }
       else { 
-        console.log("Login failed: no matching buyer found");
+        console.log("[Gate] ✗ LOGIN FAILED: no matching buyer found");
+        console.log("[Gate] Possible reasons:");
+        console.log("  - Email not found in list");
+        console.log("  - Password does not match");
+        console.log("  - Buyer is inactive");
+        console.log("=== LOGIN ATTEMPT END ===");
         setErr("Emel atau password salah. Sila cuba semula."); 
       }
-    }catch(e){ console.error("Login error:", e); setErr("Masalah sambungan. Cuba semula."); }
+    }catch(e){ 
+      console.error("[Gate] LOGIN ERROR:", e);
+      console.log("=== LOGIN ATTEMPT END ===");
+      setErr("Masalah sambungan. Cuba semula."); 
+    }
     setBusy(false);
   };
 
+
   const adminLogin = async() => {
-    if(apw===ADMIN_PW){ onAdmin(); }
-    else { setErr("Password admin salah."); }
+    console.log("[Gate] Admin login attempt with password:", apw);
+    if(apw===ADMIN_PW){ console.log("[Gate] Admin login successful"); onAdmin(); }
+    else { console.log("[Gate] Admin login failed: wrong password"); setErr("Password admin salah."); }
   };
 
   return (
