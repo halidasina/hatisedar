@@ -12,9 +12,9 @@
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-html{width:100%;height:100%;margin:0;padding:0;}
-body{width:100%;height:100%;margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif;background:#F5F0E8;}
-#root{width:100%;height:100%;margin:0;padding:0;display:grid;grid-template-columns:1fr;grid-template-rows:1fr;}
+html{width:100%;height:100%;margin:0;padding:0;overflow:hidden;}
+body{width:100%;height:100%;margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif;background:#F5F0E8;overflow:hidden;}
+#root{width:100%;height:100%;margin:0;padding:0;}
 
 /* EMOSI PAGE */
 .slider-wrap{margin:8px 0 4px;}
@@ -64,8 +64,8 @@ const { useState, useEffect, useCallback, useRef } = React;
 ══════════════════════════════════════ */
 const ADMIN_PW      = "admin@hatisedar2026"; // ← tukar!
 const ANTHROPIC_KEY = ""; // Handled via Netlify Function
-const BUYERS_KEY    = "hs_buyers";
-const SESSION_KEY   = "hs_session";
+const BUYERS_KEY    = "hs_buyers_v2";
+const SESSION_KEY   = "hs_session_v2";
 const JOURNAL_PRE   = "hs_j_";
 
 /* ── COLOURS ── */
@@ -100,31 +100,52 @@ const DEMO_BUYERS = [
 
 /* ── STORAGE ── */
 const sget = k => {
-  try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch{ return null; }
+  try{ const v=localStorage.getItem(k); const parsed = v?JSON.parse(v):null; console.log(`Retrieved ${k}:`, parsed); return parsed; }catch(e){ console.error(`Failed to retrieve ${k}:`, e); return null; }
 };
-const sset = (k,v) => { try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} };
+const sset = (k,v) => { try{ localStorage.setItem(k,JSON.stringify(v)); console.log(`Stored ${k}:`, v); }catch(e){ console.error(`Failed to store ${k}:`, e); } };
 const sgetBuyers = async () => {
   try{
-    const r = await fetch("https://mysouljournal.netlify.app/.netlify/functions/get-buyers");
-    const data = await r.json();
-    const stored = data.buyers || [];
-    const ids = stored.map(b=>b.id);
-    return [...stored,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
-  }catch{
-    const stored=JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
-    const ids=stored.map(b=>b.id);
-    return [...stored,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
+    const local = JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
+    console.log("[sgetBuyers] Local storage buyers:", local);
+    if(local && local.length > 0){
+      const ids = local.map(b=>b.id);
+      return [...local,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
+    }
+    try{
+      console.log("[sgetBuyers] Attempting server fetch...");
+      const r = await fetch("https://mysouljournal.netlify.app/.netlify/functions/get-buyers");
+      const data = await r.json();
+      const stored = data.buyers || [];
+      console.log("[sgetBuyers] Server buyers:", stored);
+      if(stored && stored.length > 0){
+        sset(BUYERS_KEY, stored);
+        const ids = stored.map(b=>b.id);
+        return [...stored,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
+      }
+    }catch(e){ console.warn("[sgetBuyers] Server fetch failed:", e); }
+    const ids = local.map(b=>b.id);
+    return [...local,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
+  }catch(e){
+    console.error("[sgetBuyers] Fatal error:", e);
+    const ids = DEMO_BUYERS.map(b=>b.id);
+    return DEMO_BUYERS;
   }
 };
 const saveBuyers = async (buyers) => {
   try{
-    await fetch("https://mysouljournal.netlify.app/.netlify/functions/save-buyers",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({buyers})
-    });
     sset(BUYERS_KEY, buyers);
-  }catch{ sset(BUYERS_KEY, buyers); }
+    console.log("[saveBuyers] Saved to local storage:", buyers);
+    try{
+      console.log("[saveBuyers] Attempting server save...");
+      const r = await fetch("https://mysouljournal.netlify.app/.netlify/functions/save-buyers",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({buyers})
+      });
+      const data = await r.json();
+      console.log("[saveBuyers] Server response:", data);
+    }catch(e){ console.warn("[saveBuyers] Server save failed:", e); }
+  }catch(e){ console.error("[saveBuyers] Fatal error:", e); }
 };
 
 /* ════════════════════════════════════════════
@@ -132,11 +153,11 @@ const saveBuyers = async (buyers) => {
 ════════════════════════════════════════════ */
 const STYLE = `
 /* GATE */
-.gate{width:100%;height:100%;min-height:100vh;background:${C.deep};display:grid;place-items:center;padding:32px;position:relative;overflow:hidden;}
+.gate{position:fixed;top:0;left:0;width:100%;height:100%;background:${C.deep};display:flex;align-items:center;justify-content:center;padding:32px;overflow:hidden;z-index:1000;}
 .orb{position:absolute;border-radius:50%;pointer-events:none;}
 .orb1{width:500px;height:500px;background:radial-gradient(circle,rgba(196,151,90,.1) 0%,transparent 65%);top:-150px;right:-150px;}
 .orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(91,138,139,.08) 0%,transparent 65%);bottom:-120px;left:-120px;}
-.gate-box{background:rgba(253,250,244,.04);border:1px solid rgba(196,151,90,.2);border-radius:24px;padding:40px 36px;width:100%;max-width:450px;text-align:center;margin:0;justify-self:center;}
+.gate-box{background:rgba(253,250,244,.04);border:1px solid rgba(196,151,90,.2);border-radius:24px;padding:40px 36px;width:100%;max-width:450px;text-align:center;position:relative;z-index:10;}
 .gate-icon{font-size:48px;margin-bottom:16px;}
 .gate-title{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;color:white;margin-bottom:4px;}
 .gate-title em{font-style:italic;color:${C.goldL};}
