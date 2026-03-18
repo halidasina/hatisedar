@@ -92,9 +92,9 @@ const genId   = () => Date.now().toString(36)+Math.random().toString(36).slice(2
 
 /* ── DEMO BUYERS (untuk test — boleh padam lepas upload ke Netlify) ── */
 const DEMO_BUYERS = [
-  {id:"demo1", name:"Demo Pembeli 1", username:"demo1",   password:"hati1234",  createdAt:"2026-03-15", active:true},
-  {id:"demo2", name:"Demo Pembeli 2", username:"demo2",   password:"jiwa5678",  createdAt:"2026-03-15", active:true},
-  {id:"demo3", name:"Demo Pembeli 3", username:"demo3",   password:"sedar9012", createdAt:"2026-03-15", active:true},
+  {id:"demo1", name:"Demo Pembeli 1", email:"demo1@hatisedar.com", password:"hati1234",  createdAt:"2026-03-15", active:true},
+  {id:"demo2", name:"Demo Pembeli 2", email:"demo2@hatisedar.com", password:"jiwa5678",  createdAt:"2026-03-15", active:true},
+  {id:"demo3", name:"Demo Pembeli 3", email:"demo3@hatisedar.com", password:"sedar9012", createdAt:"2026-03-15", active:true},
 ];
 
 /* ── STORAGE ── */
@@ -300,7 +300,7 @@ function Admin({onLogout}) {
   const [buyers,setBuyers] = useState([]);
   const [search,setSearch] = useState("");
   const [name,setName]     = useState("");
-  const [username,setUsername] = useState("");
+  const [email,setEmail]   = useState("");
   const [pw,setPw]         = useState("");
   const [toast,setToast]   = useState("");
   const [cfm,setCfm]       = useState(null);
@@ -335,25 +335,25 @@ function Admin({onLogout}) {
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),3000); };
 
   const addBuyer = () => {
-    if(!name.trim()||!username.trim()||!pw.trim()){showToast("Nama, nama pengguna & password diperlukan!");return;}
-    const uExists = buyers.find(b=>b.username&&b.username.toLowerCase()===username.trim().toLowerCase());
-    if(uExists){showToast("Nama pengguna sudah digunakan!");return;}
-    const b={id:genId(),name:name.trim(),username:username.trim(),password:pw.trim(),createdAt:today(),active:true};
+    if(!name.trim()||!email.trim()||!pw.trim()){showToast("Nama, emel & password diperlukan!");return;}
+    const eExists = buyers.find(b=>b.email&&b.email.toLowerCase()===email.trim().toLowerCase());
+    if(eExists){showToast("Alamat emel sudah digunakan!");return;}
+    const b={id:genId(),name:name.trim(),email:email.trim(),password:pw.trim(),createdAt:today(),active:true};
     save([...buyers,b]);
-    setName(""); setUsername(""); setPw("");
+    setName(""); setEmail(""); setPw("");
     showToast("✓ Pembeli ditambah!");
   };
 
   const toggle   = id => save(buyers.map(b=>b.id===id?{...b,active:!b.active}:b));
   const resetPw  = id => { const p=prompt("Password baru untuk pengguna ini:"); if(!p||!p.trim()) return; save(buyers.map(b=>b.id===id?{...b,password:p.trim()}:b)); showToast("Password berjaya ditukar!"); };
   const delBuyer = id => { save(buyers.filter(b=>b.id!==id)); setCfm(null); showToast("Pembeli dipadam."); };
-  const copyUn   = u  => { try{navigator.clipboard.writeText(u);}catch{} showToast("Disalin: "+u); };
+  const copyEmail = e  => { try{navigator.clipboard.writeText(e);}catch{} showToast("Disalin: "+e); };
 
   const active = buyers.filter(b=>b.active).length;
   const shown  = buyers.filter(b=>{
     const s=search.toLowerCase();
     return b.name.toLowerCase().includes(s)||
-    (b.username||b.name).toLowerCase().includes(s);
+    (b.email||"").toLowerCase().includes(s);
   });
 
   return (
@@ -379,38 +379,38 @@ function Admin({onLogout}) {
           <div className="adm-sec" style={{marginBottom:16}}>Tambah Pembeli Baru</div>
           <div className="adm-grid">
             <div><label className="adm-lbl">NAMA PENUH</label><input className="adm-inp" placeholder="cth: Siti Aminah" value={name} onChange={e=>setName(e.target.value)}/></div>
-            <div><label className="adm-lbl">NAMA PENGGUNA</label><input className="adm-inp" placeholder="cth: siti123" value={username} autoCapitalize="none" autoCorrect="off" onChange={e=>setUsername(e.target.value)}/></div>
+            <div><label className="adm-lbl">ALAMAT EMEL</label><input className="adm-inp" placeholder="cth: siti@gmail.com" value={email} autoCapitalize="none" autoCorrect="off" onChange={e=>setEmail(e.target.value)}/></div>
             <div>
               <label className="adm-lbl">PASSWORD</label>
               <input className="adm-inp" value={pw} onChange={e=>setPw(e.target.value)} placeholder="Tetapkan password..." style={{fontFamily:"'DM Mono',monospace",letterSpacing:1}}/>
             </div>
-            <button className="btn btn-gold" onClick={addBuyer} disabled={!name.trim()||!username.trim()||!pw.trim()}>+ Tambah</button>
+            <button className="btn btn-gold" onClick={addBuyer} disabled={!name.trim()||!email.trim()||!pw.trim()}>+ Tambah</button>
           </div>
           <p style={{fontSize:11,color:C.muted,marginTop:12,fontFamily:"'DM Mono',monospace"}}>
-            💡 Klik nama pengguna (pill emas) dalam senarai untuk salin — kongsi nama pengguna &amp; password kepada pembeli
+            💡 Klik emel (pill emas) dalam senarai untuk salin — kongsi emel &amp; password kepada pembeli
           </p>
         </div>
 
         {/* Table */}
         <div className="adm-sec">Senarai Pembeli ({buyers.length})</div>
-        <input className="search" placeholder="🔍  Cari nama atau nama pengguna..." value={search} onChange={e=>setSearch(e.target.value)}/>
+        <input className="search" placeholder="🔍  Cari nama atau emel..." value={search} onChange={e=>setSearch(e.target.value)}/>
 
         {shown.length===0
           ? <div className="empty" style={{color:C.muted}}>{buyers.length===0?"Belum ada pembeli. Tambah pembeli pertama anda!":"Tiada hasil carian."}</div>
           : <div className="tbl-wrap"><table className="adm-table">
               <thead><tr>
-                <th>NAMA</th><th>NAMA PENGGUNA</th><th>TARIKH DAFTAR</th><th>STATUS</th><th>TINDAKAN</th>
+                <th>NAMA</th><th>ALAMAT EMEL</th><th>TARIKH DAFTAR</th><th>STATUS</th><th>TINDAKAN</th>
               </tr></thead>
               <tbody>
                 {shown.map(b=>(
                   <tr key={b.id}>
                     <td><div style={{fontWeight:600,color:"white"}}>{b.name}</div></td>
-                    <td><button className="pw-pill" onClick={()=>copyUn(b.username||b.name)} title="Klik untuk salin nama pengguna">{b.username||b.name}</button></td>
+                    <td><button className="pw-pill" onClick={()=>copyEmail(b.email)} title="Klik untuk salin emel">{b.email}</button></td>
                     <td style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted}}>{fmtShort(b.createdAt)}</td>
                     <td><span className={b.active?"b-active":"b-off"}>{b.active?"Aktif":"Tidak Aktif"}</span></td>
                     <td>
                       <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                        <button className="btn btn-sm" style={{background:"rgba(196,151,90,.1)",color:C.gold,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>copyUn(b.username||b.name)}>Salin UN</button>
+                        <button className="btn btn-sm" style={{background:"rgba(196,151,90,.1)",color:C.gold,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>copyEmail(b.email)}>Salin Emel</button>
                         <button className="btn btn-sm" style={{background:"rgba(91,138,139,.1)",color:C.teal,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>resetPw(b.id)}>Reset PW</button>
                         <button className="btn btn-sm" style={{background:b.active?"rgba(155,142,122,.1)":"rgba(122,140,110,.1)",color:b.active?C.muted:C.sage,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>toggle(b.id)}>{b.active?"Nyahaktif":"Aktifkan"}</button>
                         <button className="btn btn-sm" style={{background:"rgba(192,57,43,.1)",color:"#e74c3c",border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>setCfm({id:b.id,name:b.name})}>Padam</button>
@@ -440,25 +440,25 @@ function Admin({onLogout}) {
    LOGIN GATE
 ════════════════════════════════════════════ */
 function Gate({onBuyer, onAdmin}) {
-  const [username,setUsername] = useState("");
-  const [pw,setPw]             = useState("");
-  const [err,setErr]           = useState("");
-  const [busy,setBusy]         = useState(false);
-  const [adm,setAdm]           = useState(false);
-  const [apw,setApw]           = useState("");
+  const [email,setEmail] = useState("");
+  const [pw,setPw]       = useState("");
+  const [err,setErr]     = useState("");
+  const [busy,setBusy]   = useState(false);
+  const [adm,setAdm]     = useState(false);
+  const [apw,setApw]     = useState("");
 
   const login = async() => {
-    if(!username.trim()){setErr("Sila masukkan nama pengguna anda."); return;}
+    if(!email.trim()){setErr("Sila masukkan alamat emel anda."); return;}
     if(!pw.trim()){setErr("Sila masukkan password."); return;}
     setBusy(true); setErr("");
     try{
       const buyers = await sgetBuyers();
       const b = buyers.find(x=>x.active &&
-        (x.username||x.name).toLowerCase()===username.trim().toLowerCase() &&
+        (x.email||"").toLowerCase()===email.trim().toLowerCase() &&
         x.password===pw.trim()
       );
       if(b){ onBuyer(b); }
-      else { setErr("Nama pengguna atau password salah. Sila cuba semula."); }
+      else { setErr("Emel atau password salah. Sila cuba semula."); }
     }catch(e){ setErr("Masalah sambungan. Cuba semula."); }
     setBusy(false);
   };
@@ -485,12 +485,12 @@ function Gate({onBuyer, onAdmin}) {
           </div>
           <div className="gate-brand">Muhasabah Journal</div>
           <div className="gate-sub">by Hati Sedar</div>
-          <p style={{fontSize:13,color:C.muted,marginBottom:24,lineHeight:1.7}}>Log masuk dengan nama pengguna dan password<br/>yang diberikan semasa pembelian.</p>
+          <p style={{fontSize:13,color:C.muted,marginBottom:24,lineHeight:1.7}}>Log masuk dengan alamat emel dan password<br/>yang diberikan semasa pembelian.</p>
 
-          <div className="lbl" style={{textAlign:"left",marginBottom:6}}>Nama Pengguna</div>
-          <input className="gate-inp" type="text" placeholder="Nama pengguna anda..." value={username}
+          <div className="lbl" style={{textAlign:"left",marginBottom:6}}>Alamat Emel</div>
+          <input className="gate-inp" type="email" placeholder="emel@anda.com" value={email}
             autoCapitalize="none" autoCorrect="off" spellCheck="false"
-            onChange={e=>{setUsername(e.target.value);setErr("");}}
+            onChange={e=>{setEmail(e.target.value);setErr("");}}
             onKeyDown={e=>e.key==="Enter"&&login()}/>
 
           <div className="lbl" style={{textAlign:"left",marginBottom:6,marginTop:12}}>Password</div>
@@ -847,7 +847,7 @@ function ChangePwModal({buyer, onClose, onSuccess}) {
       const r=await fetch("https://mysouljournal.netlify.app/.netlify/functions/update-password",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({buyerId:buyer.id,oldPassword:oldPw.trim(),newPassword:newPw.trim()})
+        body:JSON.stringify({buyerId:buyer.id,oldPassword:oldPw,newPassword:newPw})
       });
       const data=await r.json();
       if(data.error){setErr(data.error);return;}
