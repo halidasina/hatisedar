@@ -92,9 +92,9 @@ const genId   = () => Date.now().toString(36)+Math.random().toString(36).slice(2
 
 /* ── DEMO BUYERS (untuk test — boleh padam lepas upload ke Netlify) ── */
 const DEMO_BUYERS = [
-  {id:"demo1", name:"Demo Pembeli 1", email:"", password:"hati1234",  createdAt:"2026-03-15", active:true},
-  {id:"demo2", name:"Demo Pembeli 2", email:"", password:"jiwa5678",  createdAt:"2026-03-15", active:true},
-  {id:"demo3", name:"Demo Pembeli 3", email:"", password:"sedar9012", createdAt:"2026-03-15", active:true},
+  {id:"demo1", name:"Demo Pembeli 1", username:"demo1",   password:"hati1234",  createdAt:"2026-03-15", active:true},
+  {id:"demo2", name:"Demo Pembeli 2", username:"demo2",   password:"jiwa5678",  createdAt:"2026-03-15", active:true},
+  {id:"demo3", name:"Demo Pembeli 3", username:"demo3",   password:"sedar9012", createdAt:"2026-03-15", active:true},
 ];
 
 /* ── STORAGE ── */
@@ -141,7 +141,7 @@ const STYLE = `
 .gate-title em{font-style:italic;color:${C.goldL};}
 .gate-sub{font-size:12px;color:${C.sageL};margin-bottom:28px;line-height:1.7;}
 .gate-lbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:${C.muted};text-align:left;margin-bottom:8px;display:block;}
-.gate-inp{width:100%;padding:13px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(196,151,90,.25);border-radius:12px;color:white;font-size:15px;font-family:inherit;outline:none;text-align:center;letter-spacing:2px;transition:border-color .2s;}
+.gate-inp{width:100%;padding:13px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(196,151,90,.25);border-radius:12px;color:white;font-size:15px;font-family:inherit;outline:none;text-align:left;letter-spacing:0;transition:border-color .2s;}
 .gate-inp:focus{border-color:${C.gold};}
 .gate-inp::placeholder{color:rgba(255,255,255,.2);letter-spacing:0;}
 .gate-btn{margin-top:16px;width:100%;padding:14px;background:${C.gold};border:none;border-radius:100px;color:${C.deep};font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;transition:all .2s;}
@@ -300,8 +300,8 @@ function Admin({onLogout}) {
   const [buyers,setBuyers] = useState([]);
   const [search,setSearch] = useState("");
   const [name,setName]     = useState("");
-  const [email,setEmail]   = useState("");
-  const [pw,setPw]         = useState(genPW());
+  const [username,setUsername] = useState("");
+  const [pw,setPw]         = useState("");
   const [toast,setToast]   = useState("");
   const [cfm,setCfm]       = useState(null);
 
@@ -335,24 +335,26 @@ function Admin({onLogout}) {
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),3000); };
 
   const addBuyer = () => {
-    if(!name.trim()||!email.trim()||!pw.trim()){showToast("Nama, emel & password diperlukan!");return;}
-    const b={id:genId(),name:name.trim(),email:email.trim(),password:pw.trim(),createdAt:today(),active:true};
+    if(!name.trim()||!username.trim()||!pw.trim()){showToast("Nama, nama pengguna & password diperlukan!");return;}
+    const uExists = buyers.find(b=>b.username&&b.username.toLowerCase()===username.trim().toLowerCase());
+    if(uExists){showToast("Nama pengguna sudah digunakan!");return;}
+    const b={id:genId(),name:name.trim(),username:username.trim(),password:pw.trim(),createdAt:today(),active:true};
     save([...buyers,b]);
-    setName(""); setEmail(""); setPw(genPW());
+    setName(""); setUsername(""); setPw("");
     showToast("✓ Pembeli ditambah!");
   };
 
   const toggle   = id => save(buyers.map(b=>b.id===id?{...b,active:!b.active}:b));
-  const resetPw  = id => { const p=genPW(); save(buyers.map(b=>b.id===id?{...b,password:p}:b)); showToast("Password baru: "+p); };
+  const resetPw  = id => { const p=prompt("Password baru untuk pengguna ini:"); if(!p||!p.trim()) return; save(buyers.map(b=>b.id===id?{...b,password:p.trim()}:b)); showToast("Password berjaya ditukar!"); };
   const delBuyer = id => { save(buyers.filter(b=>b.id!==id)); setCfm(null); showToast("Pembeli dipadam."); };
-  const copyPw   = p  => { try{navigator.clipboard.writeText(p);}catch{} showToast("Disalin: "+p); };
+  const copyUn   = u  => { try{navigator.clipboard.writeText(u);}catch{} showToast("Disalin: "+u); };
 
   const active = buyers.filter(b=>b.active).length;
-  const shown  = buyers.filter(b=>
-    b.name.toLowerCase().includes(search.toLowerCase())||
-    b.email.toLowerCase().includes(search.toLowerCase())||
-    b.password.toLowerCase().includes(search.toLowerCase())
-  );
+  const shown  = buyers.filter(b=>{
+    const s=search.toLowerCase();
+    return b.name.toLowerCase().includes(s)||
+    (b.username||b.name).toLowerCase().includes(s);
+  });
 
   return (
     <div className="adm">
@@ -376,39 +378,39 @@ function Admin({onLogout}) {
         <div className="adm-add">
           <div className="adm-sec" style={{marginBottom:16}}>Tambah Pembeli Baru</div>
           <div className="adm-grid">
-            <div><label className="adm-lbl">NAMA</label><input className="adm-inp" placeholder="cth: Siti Aminah" value={name} onChange={e=>setName(e.target.value)}/></div>
-            <div><label className="adm-lbl">EMAIL (PILIHAN)</label><input className="adm-inp" placeholder="email@gmail.com" value={email} onChange={e=>setEmail(e.target.value)}/></div>
+            <div><label className="adm-lbl">NAMA PENUH</label><input className="adm-inp" placeholder="cth: Siti Aminah" value={name} onChange={e=>setName(e.target.value)}/></div>
+            <div><label className="adm-lbl">NAMA PENGGUNA</label><input className="adm-inp" placeholder="cth: siti123" value={username} autoCapitalize="none" autoCorrect="off" onChange={e=>setUsername(e.target.value)}/></div>
             <div>
-              <label className="adm-lbl">PASSWORD &nbsp;<span style={{cursor:"pointer",color:C.gold}} onClick={()=>setPw(genPW())}>↻ Jana Baru</span></label>
-              <input className="adm-inp" value={pw} onChange={e=>setPw(e.target.value)} style={{fontFamily:"'DM Mono',monospace",letterSpacing:1}}/>
+              <label className="adm-lbl">PASSWORD</label>
+              <input className="adm-inp" value={pw} onChange={e=>setPw(e.target.value)} placeholder="Tetapkan password..." style={{fontFamily:"'DM Mono',monospace",letterSpacing:1}}/>
             </div>
-            <button className="btn btn-gold" onClick={addBuyer} disabled={!name.trim()||!pw.trim()}>+ Tambah</button>
+            <button className="btn btn-gold" onClick={addBuyer} disabled={!name.trim()||!username.trim()||!pw.trim()}>+ Tambah</button>
           </div>
           <p style={{fontSize:11,color:C.muted,marginTop:12,fontFamily:"'DM Mono',monospace"}}>
-            💡 Klik password (pill emas) dalam senarai untuk salin — paste dalam OnPay delivery message
+            💡 Klik nama pengguna (pill emas) dalam senarai untuk salin — kongsi nama pengguna &amp; password kepada pembeli
           </p>
         </div>
 
         {/* Table */}
         <div className="adm-sec">Senarai Pembeli ({buyers.length})</div>
-        <input className="search" placeholder="🔍  Cari nama, email, password..." value={search} onChange={e=>setSearch(e.target.value)}/>
+        <input className="search" placeholder="🔍  Cari nama atau nama pengguna..." value={search} onChange={e=>setSearch(e.target.value)}/>
 
         {shown.length===0
           ? <div className="empty" style={{color:C.muted}}>{buyers.length===0?"Belum ada pembeli. Tambah pembeli pertama anda!":"Tiada hasil carian."}</div>
           : <div className="tbl-wrap"><table className="adm-table">
               <thead><tr>
-                <th>NAMA</th><th>PASSWORD</th><th>TARIKH DAFTAR</th><th>STATUS</th><th>TINDAKAN</th>
+                <th>NAMA</th><th>NAMA PENGGUNA</th><th>TARIKH DAFTAR</th><th>STATUS</th><th>TINDAKAN</th>
               </tr></thead>
               <tbody>
                 {shown.map(b=>(
                   <tr key={b.id}>
-                    <td><div style={{fontWeight:600,color:"white"}}>{b.name}</div>{b.email&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{b.email}</div>}</td>
-                    <td><button className="pw-pill" onClick={()=>copyPw(b.password)} title="Klik untuk salin">{b.password}</button></td>
+                    <td><div style={{fontWeight:600,color:"white"}}>{b.name}</div></td>
+                    <td><button className="pw-pill" onClick={()=>copyUn(b.username||b.name)} title="Klik untuk salin nama pengguna">{b.username||b.name}</button></td>
                     <td style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted}}>{fmtShort(b.createdAt)}</td>
                     <td><span className={b.active?"b-active":"b-off"}>{b.active?"Aktif":"Tidak Aktif"}</span></td>
                     <td>
                       <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                        <button className="btn btn-sm" style={{background:"rgba(196,151,90,.1)",color:C.gold,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>copyPw(b.password)}>Salin PW</button>
+                        <button className="btn btn-sm" style={{background:"rgba(196,151,90,.1)",color:C.gold,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>copyUn(b.username||b.name)}>Salin UN</button>
                         <button className="btn btn-sm" style={{background:"rgba(91,138,139,.1)",color:C.teal,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>resetPw(b.id)}>Reset PW</button>
                         <button className="btn btn-sm" style={{background:b.active?"rgba(155,142,122,.1)":"rgba(122,140,110,.1)",color:b.active?C.muted:C.sage,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>toggle(b.id)}>{b.active?"Nyahaktif":"Aktifkan"}</button>
                         <button className="btn btn-sm" style={{background:"rgba(192,57,43,.1)",color:"#e74c3c",border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>setCfm({id:b.id,name:b.name})}>Padam</button>
@@ -435,28 +437,28 @@ function Admin({onLogout}) {
 }
 
 /* ════════════════════════════════════════════
-   PASSWORD GATE
+   LOGIN GATE
 ════════════════════════════════════════════ */
 function Gate({onBuyer, onAdmin}) {
-  const [email,setEmail] = useState("");
-  const [pw,setPw]       = useState("");
-  const [err,setErr]     = useState("");
-  const [busy,setBusy]   = useState(false);
-  const [adm,setAdm]     = useState(false);
-  const [apw,setApw]     = useState("");
+  const [username,setUsername] = useState("");
+  const [pw,setPw]             = useState("");
+  const [err,setErr]           = useState("");
+  const [busy,setBusy]         = useState(false);
+  const [adm,setAdm]           = useState(false);
+  const [apw,setApw]           = useState("");
 
   const login = async() => {
-    if(!email.trim()){setErr("Sila masukkan alamat emel anda."); return;}
+    if(!username.trim()){setErr("Sila masukkan nama pengguna anda."); return;}
     if(!pw.trim()){setErr("Sila masukkan password."); return;}
     setBusy(true); setErr("");
     try{
       const buyers = await sgetBuyers();
       const b = buyers.find(x=>x.active &&
-        x.email.toLowerCase()===email.trim().toLowerCase() &&
-        x.password.toLowerCase()===pw.trim().toLowerCase()
+        (x.username||x.name).toLowerCase()===username.trim().toLowerCase() &&
+        x.password===pw.trim()
       );
       if(b){ onBuyer(b); }
-      else { setErr("Emel atau password salah. Semak emel pembelian anda."); }
+      else { setErr("Nama pengguna atau password salah. Sila cuba semula."); }
     }catch(e){ setErr("Masalah sambungan. Cuba semula."); }
     setBusy(false);
   };
@@ -483,11 +485,12 @@ function Gate({onBuyer, onAdmin}) {
           </div>
           <div className="gate-brand">Muhasabah Journal</div>
           <div className="gate-sub">by Hati Sedar</div>
-          <p style={{fontSize:13,color:C.muted,marginBottom:24,lineHeight:1.7}}>Log masuk dengan emel dan password<br/>yang diterima semasa pembelian.</p>
+          <p style={{fontSize:13,color:C.muted,marginBottom:24,lineHeight:1.7}}>Log masuk dengan nama pengguna dan password<br/>yang diberikan semasa pembelian.</p>
 
-          <div className="lbl" style={{textAlign:"left",marginBottom:6}}>Alamat Emel</div>
-          <input className="gate-inp" type="email" placeholder="emel@anda.com" value={email}
-            onChange={e=>{setEmail(e.target.value);setErr("");}}
+          <div className="lbl" style={{textAlign:"left",marginBottom:6}}>Nama Pengguna</div>
+          <input className="gate-inp" type="text" placeholder="Nama pengguna anda..." value={username}
+            autoCapitalize="none" autoCorrect="off" spellCheck="false"
+            onChange={e=>{setUsername(e.target.value);setErr("");}}
             onKeyDown={e=>e.key==="Enter"&&login()}/>
 
           <div className="lbl" style={{textAlign:"left",marginBottom:6,marginTop:12}}>Password</div>
@@ -836,8 +839,8 @@ function ChangePwModal({buyer, onClose, onSuccess}) {
     if(!newPw.trim()) { setErr("Sila masukkan password baru."); return; }
     if(newPw.length < 6) { setErr("Password baru mestilah sekurang-kurangnya 6 aksara."); return; }
     if(newPw !== confPw) { setErr("Password baru tidak sepadan."); return; }
-    if(oldPw.toLowerCase() !== buyer.password.toLowerCase()) { setErr("Password lama tidak betul."); return; }
-    if(newPw.toLowerCase() === oldPw.toLowerCase()) { setErr("Password baru mesti berbeza dari password lama."); return; }
+    if(oldPw !== buyer.password) { setErr("Password lama tidak betul."); return; }
+    if(newPw === oldPw) { setErr("Password baru mesti berbeza dari password lama."); return; }
 
     // Update password on server
     try{
@@ -968,12 +971,17 @@ function App() {
 
   // Restore session on load
   useEffect(()=>{
-    const s = JSON.parse(sessionStorage.getItem(SESSION_KEY)||"null");
-    if(s?.buyerId){
-      const buyers = await sgetBuyers();
-      const b = buyers.find(x=>x.id===s.buyerId&&x.active);
-      if(b){ setBuyer(b); loadJ(b.id); setView("splash"); }
-    }
+    const restore = async() => {
+      const s = JSON.parse(sessionStorage.getItem(SESSION_KEY)||"null");
+      if(s?.buyerId){
+        try{
+          const buyers = await sgetBuyers();
+          const b = buyers.find(x=>x.id===s.buyerId&&x.active);
+          if(b){ setBuyer(b); loadJ(b.id); setView("splash"); }
+        }catch(e){}
+      }
+    };
+    restore();
   },[]);
 
   const loadJ = id => {

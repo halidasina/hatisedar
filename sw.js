@@ -1,4 +1,4 @@
-const CACHE_NAME = 'muhasabah-journal-v1';
+const CACHE_NAME = 'muhasabah-journal-v2';
 const ASSETS = [
   './app.html',
   './manifest.json',
