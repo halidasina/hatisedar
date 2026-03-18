@@ -307,7 +307,7 @@ function Admin({onLogout}) {
   const [search,setSearch] = useState("");
   const [name,setName]     = useState("");
   const [email,setEmail]   = useState("");
-  const [pw,setPw]         = useState("");
+  const [pw,setPw]         = useState(genPW());
   const [toast,setToast]   = useState("");
   const [cfm,setCfm]       = useState(null);
 
@@ -346,7 +346,7 @@ function Admin({onLogout}) {
     if(eExists){showToast("Alamat emel sudah digunakan!");return;}
     const b={id:genId(),name:name.trim(),email:email.trim(),password:pw.trim(),createdAt:today(),active:true};
     save([...buyers,b]);
-    setName(""); setEmail(""); setPw("");
+    setName(""); setEmail(""); setPw(genPW());
     showToast("✓ Pembeli ditambah!");
   };
 
@@ -354,6 +354,7 @@ function Admin({onLogout}) {
   const resetPw  = id => { const p=prompt("Password baru untuk pengguna ini:"); if(!p||!p.trim()) return; save(buyers.map(b=>b.id===id?{...b,password:p.trim()}:b)); showToast("Password berjaya ditukar!"); };
   const delBuyer = id => { save(buyers.filter(b=>b.id!==id)); setCfm(null); showToast("Pembeli dipadam."); };
   const copyEmail = e  => { try{navigator.clipboard.writeText(e);}catch{} showToast("Disalin: "+e); };
+  const copyPw   = p  => { try{navigator.clipboard.writeText(p);}catch{} showToast("Disalin: "+p); };
 
   const active = buyers.filter(b=>b.active).length;
   const shown  = buyers.filter(b=>{
@@ -387,13 +388,13 @@ function Admin({onLogout}) {
             <div><label className="adm-lbl">NAMA PENUH</label><input className="adm-inp" placeholder="cth: Siti Aminah" value={name} onChange={e=>setName(e.target.value)}/></div>
             <div><label className="adm-lbl">ALAMAT EMEL</label><input className="adm-inp" placeholder="cth: siti@gmail.com" value={email} autoCapitalize="none" autoCorrect="off" onChange={e=>setEmail(e.target.value)}/></div>
             <div>
-              <label className="adm-lbl">PASSWORD</label>
-              <input className="adm-inp" value={pw} onChange={e=>setPw(e.target.value)} placeholder="Tetapkan password..." style={{fontFamily:"'DM Mono',monospace",letterSpacing:1}}/>
+              <label className="adm-lbl">PASSWORD &nbsp;<span style={{cursor:"pointer",color:C.gold}} onClick={()=>setPw(genPW())}>↻ Jana Baru</span></label>
+              <input className="adm-inp" value={pw} onChange={e=>setPw(e.target.value)} style={{fontFamily:"'DM Mono',monospace",letterSpacing:1}}/>
             </div>
             <button className="btn btn-gold" onClick={addBuyer} disabled={!name.trim()||!email.trim()||!pw.trim()}>+ Tambah</button>
           </div>
           <p style={{fontSize:11,color:C.muted,marginTop:12,fontFamily:"'DM Mono',monospace"}}>
-            💡 Klik emel (pill emas) dalam senarai untuk salin — kongsi emel &amp; password kepada pembeli
+            💡 Password dijana secara automatik. Klik emel atau password dalam senarai untuk salin — kongsi kepada pembeli
           </p>
         </div>
 
@@ -405,18 +406,19 @@ function Admin({onLogout}) {
           ? <div className="empty" style={{color:C.muted}}>{buyers.length===0?"Belum ada pembeli. Tambah pembeli pertama anda!":"Tiada hasil carian."}</div>
           : <div className="tbl-wrap"><table className="adm-table">
               <thead><tr>
-                <th>NAMA</th><th>ALAMAT EMEL</th><th>TARIKH DAFTAR</th><th>STATUS</th><th>TINDAKAN</th>
+                <th>NAMA</th><th>ALAMAT EMEL</th><th>PASSWORD</th><th>TARIKH DAFTAR</th><th>STATUS</th><th>TINDAKAN</th>
               </tr></thead>
               <tbody>
                 {shown.map(b=>(
                   <tr key={b.id}>
                     <td><div style={{fontWeight:600,color:"white"}}>{b.name}</div></td>
                     <td><button className="pw-pill" onClick={()=>copyEmail(b.email)} title="Klik untuk salin emel">{b.email}</button></td>
+                    <td><button className="pw-pill" onClick={()=>copyPw(b.password)} title="Klik untuk salin password">{b.password}</button></td>
                     <td style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted}}>{fmtShort(b.createdAt)}</td>
                     <td><span className={b.active?"b-active":"b-off"}>{b.active?"Aktif":"Tidak Aktif"}</span></td>
                     <td>
                       <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                        <button className="btn btn-sm" style={{background:"rgba(196,151,90,.1)",color:C.gold,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>copyEmail(b.email)}>Salin Emel</button>
+                        <button className="btn btn-sm" style={{background:"rgba(196,151,90,.1)",color:C.gold,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>copyPw(b.password)}>Salin PW</button>
                         <button className="btn btn-sm" style={{background:"rgba(91,138,139,.1)",color:C.teal,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>resetPw(b.id)}>Reset PW</button>
                         <button className="btn btn-sm" style={{background:b.active?"rgba(155,142,122,.1)":"rgba(122,140,110,.1)",color:b.active?C.muted:C.sage,border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>toggle(b.id)}>{b.active?"Nyahaktif":"Aktifkan"}</button>
                         <button className="btn btn-sm" style={{background:"rgba(192,57,43,.1)",color:"#e74c3c",border:"none",padding:"5px 10px",borderRadius:8,fontSize:10}} onClick={()=>setCfm({id:b.id,name:b.name})}>Padam</button>
