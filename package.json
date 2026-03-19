@@ -1,0 +1,10 @@
+{
+  "name": "hatisedar",
+  "version": "1.0.0",
+  "description": "Soul Journal by Hati Sedar",
+  "main": "index.html",
+  "dependencies": {
+    "@netlify/blobs": "^2.2.4",
+    "openai": "^4.28.0"
+  }
+}
