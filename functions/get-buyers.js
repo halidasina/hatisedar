@@ -23,14 +23,23 @@ exports.handler = async (event, context) => {
 
     // Fetch all buyers from the database
     const result = await client.query("SELECT * FROM buyers ORDER BY created_timestamp DESC");
-    const buyers = result.rows.map(row => ({
-      id: row.id,
-      name: row.name,
-      email: row.email,
-      password: row.password,
-      createdAt: row.created_at,
-      active: row.active
-    }));
+    const buyers = result.rows.map(row => {
+      // Ensure date is in YYYY-MM-DD format for the frontend
+      let formattedDate = "";
+      if (row.created_at) {
+        const d = new Date(row.created_at);
+        formattedDate = d.toISOString().split('T')[0];
+      }
+      
+      return {
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        password: row.password,
+        createdAt: formattedDate,
+        active: row.active
+      };
+    });
 
     return {
       statusCode: 200,
