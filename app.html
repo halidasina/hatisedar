@@ -108,7 +108,13 @@ const sgetBuyers = async () => {
   try{
     // Always try server first
     const r = await fetch("/.netlify/functions/get-buyers");
-    if(!r.ok) throw new Error(`Server error: ${r.status}`);
+    if(!r.ok) {
+      const errData = await r.json().catch(()=>({}));
+      if(errData.error && errData.error.includes("Netlify Blobs")) {
+        throw new Error("Netlify Blobs belum diaktifkan di dashboard Netlify.");
+      }
+      throw new Error(`Server error: ${r.status}`);
+    }
     const data = await r.json();
     const serverBuyers = data.buyers || [];
     console.log("[sgetBuyers] Server returned:", serverBuyers);
@@ -138,7 +144,13 @@ const saveBuyers = async (buyers) => {
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({buyers})
     });
-    if(!r.ok) throw new Error(`Server error: ${r.status}`);
+    if(!r.ok) {
+      const errData = await r.json().catch(()=>({}));
+      if(errData.error && errData.error.includes("Netlify Blobs")) {
+        throw new Error("Netlify Blobs belum diaktifkan di dashboard Netlify.");
+      }
+      throw new Error(`Server error: ${r.status}`);
+    }
     const data = await r.json();
     console.log("[saveBuyers] SUCCESS - Server response:", data);
     sset(BUYERS_KEY, buyers);
@@ -348,7 +360,13 @@ function Admin({onLogout}) {
     if(manual) showToast("Memuatkan data dari server...");
     try{
       const r = await fetch("/.netlify/functions/get-buyers");
-      if(!r.ok) throw new Error(`Server error: ${r.status}`);
+      if(!r.ok) {
+        const errData = await r.json().catch(()=>({}));
+        if(errData.error && errData.error.includes("Netlify Blobs")) {
+          throw new Error("Netlify Blobs belum diaktifkan di dashboard Netlify.");
+        }
+        throw new Error(`Server error: ${r.status}`);
+      }
       const data = await r.json();
       const serverBuyers = data.buyers || [];
       console.log("[Admin] Server buyers:", serverBuyers);
@@ -357,7 +375,13 @@ function Admin({onLogout}) {
       if(manual) showToast("✓ Data dikemaskini");
     }catch(e){
       console.warn("[Admin] Server fetch failed:", e);
-      if(manual) showToast("⚠ Gagal memuatkan data dari server");
+      if(manual) {
+        if(e.message.includes("Netlify Blobs")) {
+          showToast("⚠ Sila aktifkan Netlify Blobs di dashboard Netlify");
+        } else {
+          showToast("⚠ Gagal memuatkan data dari server");
+        }
+      }
       try{
         const local = JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
         setBuyers(local);
@@ -390,7 +414,7 @@ function Admin({onLogout}) {
     if(synced){
       showToast("✓ Pembeli ditambah (TERSIMPAN KE SERVER)");
     } else {
-      showToast("⚠ Pembeli ditambah TETAPI HANYA LOKAL - PERIKSA SAMBUNGAN");
+      showToast("⚠ Pembeli ditambah TETAPI HANYA LOKAL - SILA AKTIFKAN BLOBS");
     }
   };
 
