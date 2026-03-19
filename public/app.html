@@ -957,19 +957,39 @@ function ChangePwModal({buyer, onClose, onSuccess}) {
 
   const submit = async() => {
     setErr("");
-    if(!oldPw.trim()) { setErr("Sila masukkan password lama."); return; }
-    if(!newPw.trim()) { setErr("Sila masukkan password baru."); return; }
-    if(newPw.length < 6) { setErr("Password baru mestilah sekurang-kurangnya 6 aksara."); return; }
-    if(newPw !== confPw) { setErr("Password baru tidak sepadan."); return; }
-    if(oldPw.trim() !== buyer.password.trim()) { setErr("Password lama tidak betul."); return; }
-    if(newPw === oldPw) { setErr("Password baru mesti berbeza dari password lama."); return; }
+    const trimmedOld = oldPw.trim();
+    const trimmedNew = newPw.trim();
+    
+    if(!trimmedOld) { setErr("Sila masukkan password lama."); return; }
+    if(!trimmedNew) { setErr("Sila masukkan password baru."); return; }
+    if(trimmedNew.length < 6) { setErr("Password baru mestilah sekurang-kurangnya 6 aksara."); return; }
+    if(trimmedNew !== confPw.trim()) { setErr("Password baru tidak sepadan."); return; }
+    
+    console.log("[ChangePw] Starting update process...");
+    console.log("[ChangePw] Buyer in memory:", { id: buyer.id, email: buyer.email, password: buyer.password });
+    console.log("[ChangePw] Old password entered (trimmed):", trimmedOld);
 
     // Update password on server
     try{
+      // 1. First, re-fetch buyers to make sure we have the latest from DB
+      console.log("[ChangePw] Re-fetching latest buyers from server to sync...");
+      const latestBuyers = await sgetBuyers();
+      const latestMe = latestBuyers.find(b => b.id === buyer.id);
+      
+      if (latestMe) {
+        console.log("[ChangePw] Latest buyer from server:", { id: latestMe.id, email: latestMe.email, password: latestMe.password });
+        if (trimmedOld !== latestMe.password.trim()) {
+          console.error("[ChangePw] Password mismatch after re-fetch!");
+          setErr("Password lama tidak betul (Mismatch with Server).");
+          return;
+        }
+      }
+
+      console.log("[ChangePw] Sending update request to server...");
       const r=await fetch("/.netlify/functions/update-password",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({buyerId:buyer.id,oldPassword:oldPw,newPassword:newPw})
+        body:JSON.stringify({buyerId:buyer.id, oldPassword:trimmedOld, newPassword:trimmedNew})
       });
       const data=await r.json();
       if(data.error){setErr(data.error);return;}
