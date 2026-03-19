@@ -97,9 +97,15 @@ const MOODS = [
   {e:"🙂",l:"Tenang",v:4},{e:"😊",l:"Gembira",v:5},
 ];
 
-/* ── HELPERS ── */
-const today   = () => new Date().toISOString().slice(0,10);
-const fmtDate = d => d ? new Date(d+"T00:00:00").toLocaleDateString("ms-MY",{weekday:"long",day:"numeric",month:"long",year:"numeric"}) : "";
+	/* ── HELPERS ── */
+	const today   = () => new Date().toISOString().slice(0,10);
+	const fmtDate = d => d ? new Date(d+"T00:00:00").toLocaleDateString("ms-MY",{weekday:"long",day:"numeric",month:"long",year:"numeric"}) : "";
+	const F = ({label,children}) => (
+	  <div style={{marginBottom:16}}>
+	    <label style={{display:"block",fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:2,color:C.muted,marginBottom:6,textTransform:"uppercase"}}>{label}</label>
+	    {children}
+	  </div>
+	);
 const fmtShort= d => d ? new Date(d+"T00:00:00").toLocaleDateString("ms-MY",{day:"numeric",month:"short",year:"numeric"}) : "";
 const mlbl    = ym => { const [y,m]=ym.split("-"); return ["Jan","Feb","Mac","Apr","Mei","Jun","Jul","Ogos","Sep","Okt","Nov","Dis"][+m-1]+" "+y; };
 const genPW   = () => {
