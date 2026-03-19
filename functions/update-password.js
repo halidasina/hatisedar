@@ -54,19 +54,25 @@ exports.handler = async (event, context) => {
 
     const buyer = buyerResult.rows[0];
 
-    // Verify old password if provided (ensure trimmed comparison)
-    if (oldPassword && buyer.password.trim() !== oldPassword.trim()) {
+    // Verify old password if provided (AGRESSIVE TRIMMING ON BOTH SIDES)
+    const storedPw = (buyer.password || "").trim();
+    const providedOldPw = (oldPassword || "").trim();
+
+    console.log(`[Server] Comparing passwords for ${buyerId}: stored='${storedPw}', provided='${providedOldPw}'`);
+
+    if (oldPassword && storedPw !== providedOldPw) {
       return {
         statusCode: 403,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({ error: "Old password incorrect" })
+        body: JSON.stringify({ error: "Old password incorrect (Server-side check failed)" })
       };
     }
 
     // Update password (ensure trimmed)
+    const trimmedNewPw = newPassword.trim();
     await client.query(
       "UPDATE buyers SET password = $1 WHERE id = $2",
-      [newPassword.trim(), buyerId]
+      [trimmedNewPw, buyerId]
     );
 
     return {
