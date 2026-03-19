@@ -13,8 +13,11 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 html{width:100%;height:100%;margin:0;padding:0;overflow:hidden;}
-body{width:100%;height:100%;margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif;background:#F5F0E8;overflow:hidden;}
-#root{width:100%;height:100%;margin:0;padding:0;}
+body{width:100%;height:100%;margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif;background:#F5F0E8;overflow:hidden;display:flex;justify-content:center;}
+#root{width:100%;height:100%;margin:0;padding:0;width:100%;max-width:500px;background:white;position:relative;box-shadow:0 0 40px rgba(0,0,0,0.05);}
+@media (min-width: 501px) {
+  body { background: #E6DED1; }
+}
 
 /* EMOSI PAGE */
 .slider-wrap{margin:8px 0 4px;}
@@ -1141,7 +1144,7 @@ function App() {
 
   const TABS = [{id:"home",l:"Utama",e:"🏠"},{id:"harian",l:"Harian",e:"☀️"},{id:"emosi",l:"Emosi",e:"💛"},{id:"history",l:"Sejarah",e:"📖"},{id:"summary",l:"Ringkasan AI",e:"✨"}];
 
-  return(<>
+  return(<div style={{height:'100%', display:'flex', flexDirection:'column', overflow:'hidden'}}>
     <style>{STYLE}</style>
     {view==="admin" && <Admin onLogout={()=>setView("gate")}/>}
     {view==="gate"  && <Gate onBuyer={handleBuyer} onAdmin={()=>setView("admin")}/>}
@@ -1153,7 +1156,7 @@ function App() {
       />
     )}
     {view==="splash"&&
-      <div className="splash">
+      <div className="splash" style={{flex:1}}>
         <div className="orb orb1"/><div className="orb orb2"/>
         <div className="splash-geo">✦</div>
         <button className="s-logout" onClick={logout}>Log Keluar</button>
@@ -1182,7 +1185,7 @@ function App() {
         <p className="s-name">Selamat datang, {buyer?.name}</p>
       </div>
     }
-    {view==="journal"&&<>
+    {view==="journal"&&<div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
       <nav className="nav">
         <div className="nav-brand">Muhasabah</div>
         {TABS.map(t=><button key={t.id} className={`nav-tab ${page===t.id?"active":""}`} onClick={()=>setPage(t.id)}>{t.e} {t.l}</button>)}
@@ -1191,13 +1194,15 @@ function App() {
           <button className="nav-out" onClick={logout}>Keluar</button>
         </div>
       </nav>
-      {page==="home"    &&<Home     entries={entries} nav={setPage} name={buyer?.name||""} onLogout={logout} onChangePw={()=>setShowChangePw(true)}/>}
-      {page==="harian"  &&<Harian   entries={entries} onSave={saveEntry} onLogout={logout} onChangePw={()=>setShowChangePw(true)}/>}
-      {page==="emosi"   &&<Emosi    entries={entries} onSave={saveEntry} onLogout={logout} onChangePw={()=>setShowChangePw(true)}/> }
-      {page==="history" &&<History  entries={entries} onLogout={logout} onChangePw={()=>setShowChangePw(true)}/>}
-      {page==="summary" &&<Summary  entries={entries} summaries={summs} onSave={saveSumm} onLogout={logout} onChangePw={()=>setShowChangePw(true)}/>}
-    </>}
-  </>);
+      <div style={{flex:1, overflowY:'auto', overflowX:'hidden'}}>
+        {page==="home"    &&<Home     entries={entries} nav={setPage} name={buyer?.name||""} onLogout={logout} onChangePw={()=>setShowChangePw(true)}/>}
+        {page==="harian"  &&<Harian   entries={entries} onSave={saveEntry} onLogout={logout} onChangePw={()=>setShowChangePw(true)}/>}
+        {page==="emosi"   &&<Emosi    entries={entries} onSave={saveEntry} onLogout={logout} onChangePw={()=>setShowChangePw(true)}/> }
+        {page==="history" &&<History  entries={entries} onLogout={logout} onChangePw={()=>setShowChangePw(true)}/>}
+        {page==="summary" &&<Summary  entries={entries} summaries={summs} onSave={saveSumm} onLogout={logout} onChangePw={()=>setShowChangePw(true)}/>}
+      </div>
+    </div>}
+  </div>);
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
