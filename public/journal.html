@@ -691,7 +691,7 @@ function Home({entries,nav,name,onLogout,onChangePw}) {
       </div>
       <p>Jadikan hari ini lebih bermakna dengan muhasabah diri.</p>
       <div className="streak-row">{last7.map(d=><div key={d.key} className={`sday ${d.done?"done":d.isToday?"today":"miss"}`}>{d.lbl}</div>)}</div>
-      <button className="btn btn-gold" onClick={()=>nav("harian")}>{te?"✏️ Sambung Menulis":"☀️ Mula Muhasabah Hari Ini"}</button>
+      <button className="btn btn-gold" onClick={()=>{console.log("[Home] Navigating to harian..."); nav("harian");}}>{te?"✏️ Sambung Menulis":"☀️ Mula Muhasabah Hari Ini"}</button>
     </div>
     <div className="stats-row">
       <div className="stat-box"><div className="stat-n">{streak()}</div><div className="stat-l">STREAK</div></div>
@@ -1216,7 +1216,7 @@ function App() {
         <h1 className="s-title">Muhasabah<br/><em>Journal</em></h1>
         <div className="s-rule"/>
         <p className="s-sub">Jurnal harian untuk mengenal diri, mensyukuri nikmat, dan sedar akan kehadiran Allah.</p>
-        <button className="s-btn" onClick={()=>setView("journal")}>{Object.keys(entries).length>0?"Sambung Menulis →":"Mula Sekarang →"}</button>
+        <button className="s-btn" onClick={()=>{setView("journal"); setPage("home");}}>{Object.keys(entries).length>0?"Sambung Menulis →":"Mula Sekarang →"}</button>
         <p className="s-name">Selamat datang, {buyer?.name}</p>
       </div>
     }
