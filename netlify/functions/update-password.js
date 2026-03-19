@@ -1,8 +1,25 @@
 const { getStore } = require("@netlify/blobs");
 
 exports.handler = async (event, context) => {
+  // Handle CORS preflight
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+      },
+      body: ""
+    };
+  }
+
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
+    return {
+      statusCode: 405,
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: "Method Not Allowed"
+    };
   }
 
   try {
@@ -16,11 +33,19 @@ exports.handler = async (event, context) => {
     
     const buyer = buyers.find(b => b.id === buyerId);
     if (!buyer) {
-      return { statusCode: 404, body: JSON.stringify({ error: "Buyer not found" }) };
+      return {
+        statusCode: 404,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({ error: "Buyer not found" })
+      };
     }
 
     if (oldPassword && buyer.password !== oldPassword) {
-      return { statusCode: 403, body: JSON.stringify({ error: "Old password incorrect" }) };
+      return {
+        statusCode: 403,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({ error: "Old password incorrect" })
+      };
     }
 
     const updatedBuyers = buyers.map(b => 
@@ -41,7 +66,8 @@ exports.handler = async (event, context) => {
     console.error("Error updating password:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Failed to update password" })
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ error: "Failed to update password: " + (error.message || "") })
     };
   }
 };

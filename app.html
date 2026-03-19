@@ -110,18 +110,17 @@ const sgetBuyers = async () => {
     const r = await fetch("/.netlify/functions/get-buyers");
     if(!r.ok) {
       const errData = await r.json().catch(()=>({}));
-      if(errData.error && errData.error.includes("Netlify Blobs")) {
+      if(errData.error && (errData.error.includes("Netlify Blobs") || errData.error.includes("belum diaktifkan"))) {
         throw new Error("Netlify Blobs belum diaktifkan di dashboard Netlify.");
       }
-      throw new Error(`Server error: ${r.status}`);
+      throw new Error(`Server error: ${r.status} - ${errData.error||''}`);
     }
     const data = await r.json();
     const serverBuyers = data.buyers || [];
     console.log("[sgetBuyers] Server returned:", serverBuyers);
     if(serverBuyers && Array.isArray(serverBuyers)){
       sset(BUYERS_KEY, serverBuyers);
-      const ids = serverBuyers.map(b=>b.id);
-      return [...serverBuyers,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
+      return serverBuyers;
     }
   }catch(e){
     console.warn("[sgetBuyers] Server fetch failed, trying fallback...", e);
@@ -146,10 +145,10 @@ const saveBuyers = async (buyers) => {
     });
     if(!r.ok) {
       const errData = await r.json().catch(()=>({}));
-      if(errData.error && errData.error.includes("Netlify Blobs")) {
+      if(errData.error && (errData.error.includes("Netlify Blobs") || errData.error.includes("belum diaktifkan"))) {
         throw new Error("Netlify Blobs belum diaktifkan di dashboard Netlify.");
       }
-      throw new Error(`Server error: ${r.status}`);
+      throw new Error(`Server error: ${r.status} - ${errData.error||''}`);
     }
     const data = await r.json();
     console.log("[saveBuyers] SUCCESS - Server response:", data);
@@ -362,17 +361,17 @@ function Admin({onLogout}) {
       const r = await fetch("/.netlify/functions/get-buyers");
       if(!r.ok) {
         const errData = await r.json().catch(()=>({}));
-        if(errData.error && errData.error.includes("Netlify Blobs")) {
+        if(errData.error && (errData.error.includes("Netlify Blobs") || errData.error.includes("belum diaktifkan"))) {
           throw new Error("Netlify Blobs belum diaktifkan di dashboard Netlify.");
         }
-        throw new Error(`Server error: ${r.status}`);
+        throw new Error(`Server error: ${r.status} - ${errData.error||''}`);
       }
       const data = await r.json();
       const serverBuyers = data.buyers || [];
       console.log("[Admin] Server buyers:", serverBuyers);
       setBuyers(serverBuyers);
       sset(BUYERS_KEY, serverBuyers);
-      if(manual) showToast("✓ Data dikemaskini");
+      if(manual) showToast("✓ Data dikemaskini dari server ("+serverBuyers.length+" pembeli)");
     }catch(e){
       console.warn("[Admin] Server fetch failed:", e);
       if(manual) {
