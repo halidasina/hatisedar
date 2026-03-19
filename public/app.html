@@ -961,7 +961,7 @@ function ChangePwModal({buyer, onClose, onSuccess}) {
     if(!newPw.trim()) { setErr("Sila masukkan password baru."); return; }
     if(newPw.length < 6) { setErr("Password baru mestilah sekurang-kurangnya 6 aksara."); return; }
     if(newPw !== confPw) { setErr("Password baru tidak sepadan."); return; }
-    if(oldPw !== buyer.password) { setErr("Password lama tidak betul."); return; }
+    if(oldPw.trim() !== buyer.password.trim()) { setErr("Password lama tidak betul."); return; }
     if(newPw === oldPw) { setErr("Password baru mesti berbeza dari password lama."); return; }
 
     // Update password on server

@@ -54,8 +54,8 @@ exports.handler = async (event, context) => {
 
     const buyer = buyerResult.rows[0];
 
-    // Verify old password if provided
-    if (oldPassword && buyer.password !== oldPassword) {
+    // Verify old password if provided (ensure trimmed comparison)
+    if (oldPassword && buyer.password.trim() !== oldPassword.trim()) {
       return {
         statusCode: 403,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
