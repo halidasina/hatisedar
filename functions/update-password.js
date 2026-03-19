@@ -63,10 +63,10 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Update password
+    // Update password (ensure trimmed)
     await client.query(
       "UPDATE buyers SET password = $1 WHERE id = $2",
-      [newPassword, buyerId]
+      [newPassword.trim(), buyerId]
     );
 
     return {

@@ -973,10 +973,15 @@ function ChangePwModal({buyer, onClose, onSuccess}) {
       });
       const data=await r.json();
       if(data.error){setErr(data.error);return;}
+      
+      const trimmedNewPw = newPw.trim();
       const local=sget(BUYERS_KEY)||[];
-      const updated=local.map(b=>b.id===buyer.id?{...b,password:newPw.trim()}:b);
-      sset(BUYERS_KEY,updated);
-      buyer.password=newPw.trim();
+      const updatedLocal = local.map(b => b.id === buyer.id ? { ...b, password: trimmedNewPw } : b);
+      sset(BUYERS_KEY, updatedLocal);
+      
+      // Update the active buyer state
+      buyer.password = trimmedNewPw;
+      
       setDone(true);
     }catch(e){setErr("Ralat menyimpan. Cuba semula.");}
   };
