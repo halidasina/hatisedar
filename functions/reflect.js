@@ -32,12 +32,19 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const apiKey = process.env.ANTHROPIC_KEY || process.env.OPENAI_API_KEY;
+    const anthropicKey = process.env.ANTHROPIC_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+    const apiKey = anthropicKey || openaiKey;
+    
     if (!apiKey) {
+      console.error("DEBUG: AI API Keys missing. ANTHROPIC_KEY:", !!anthropicKey, "OPENAI_API_KEY:", !!openaiKey);
       return {
         statusCode: 500,
         headers: { "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({ error: "AI API Key not configured in Netlify environment variables" })
+        body: JSON.stringify({ 
+          error: "AI API Key not configured. Please add OPENAI_API_KEY or ANTHROPIC_KEY to Netlify environment variables.",
+          debug: { anthropic: !!anthropicKey, openai: !!openaiKey }
+        })
       };
     }
 
