@@ -186,11 +186,11 @@ const saveBuyers = async (buyers) => {
 ════════════════════════════════════════════ */
 const STYLE = `
 /* GATE */
-.gate{position:fixed !important;top:0 !important;left:0 !important;width:100% !important;height:100% !important;background:#0d0b07 !important;display:flex !important;align-items:center !important;justify-content:center !important;padding:32px !important;overflow:hidden !important;z-index:1000 !important;}
+.gate{width:100% !important;min-height:100vh !important;background:#0d0b07 !important;display:flex !important;align-items:center !important;justify-content:center !important;padding:32px !important;overflow-y:auto !important;position:relative !important;z-index:1000 !important;}
 .orb{position:absolute;border-radius:50%;pointer-events:none;}
 .orb1{width:500px;height:500px;background:radial-gradient(circle,rgba(196,151,90,.1) 0%,transparent 65%);top:-150px;right:-150px;}
 .orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(91,138,139,.08) 0%,transparent 65%);bottom:-120px;left:-120px;}
-.gate-box{background:rgba(253,250,244,.04) !important;border:1px solid rgba(196,151,90,.2) !important;border-radius:24px !important;padding:40px 36px !important;width:100% !important;max-width:450px !important;text-align:center !important;position:relative !important;z-index:10 !important;}
+.gate-box{background:rgba(253,250,244,.04) !important;border:1px solid rgba(196,151,90,.2) !important;border-radius:24px !important;padding:40px 36px !important;width:100% !important;max-width:450px !important;text-align:center !important;position:relative !important;z-index:10 !important;margin:auto !important;}
 .gate-icon{font-size:48px;margin-bottom:16px;}
 .gate-title{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;color:white;margin-bottom:4px;}
 .gate-title em{font-style:italic;color:${C.goldL};}
