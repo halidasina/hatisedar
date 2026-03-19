@@ -2,7 +2,7 @@
   "name": "Muhasabah Journal — Hati Sedar",
   "short_name": "Muhasabah",
   "description": "Jurnal harian digital dalam Bahasa Melayu untuk jiwa yang sedar akan kehadiran Allah",
-  "start_url": "/app.html",
+  "start_url": "/journal.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

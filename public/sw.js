@@ -5,7 +5,7 @@ const ASSETS = [
   './icon-512.png',
 ];
 
-// Install — cache semua assets (except app.html)
+// Install — cache semua assets (except journal.html)
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
@@ -23,12 +23,12 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Fetch — ALWAYS go to network first for app.html
+// Fetch — ALWAYS go to network first for journal.html
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   
   // If requesting the main app, ALWAYS go to network to get latest styles
-  if (url.pathname.endsWith('app.html') || url.pathname === '/') {
+  if (url.pathname.endsWith('journal.html') || url.pathname === '/') {
     e.respondWith(
       fetch(e.request).catch(() => caches.match(e.request))
     );
