@@ -14,8 +14,8 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 html{width:100%;height:100%;margin:0;padding:0;overflow:hidden;}
 body{width:100%;height:100%;margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif;background:#F5F0E8;overflow:hidden;display:flex;justify-content:center;}
-#root{width:100%;height:100%;margin:0;padding:0;width:100%;max-width:500px;background:white;position:relative;box-shadow:0 0 40px rgba(0,0,0,0.05);}
-@media (min-width: 501px) {
+#root{width:100%;height:100%;margin:0;padding:0;width:100%;max-width:1200px;background:white;position:relative;box-shadow:0 0 40px rgba(0,0,0,0.05);}
+@media (min-width: 1201px) {
   body { background: #E6DED1; }
 }
 
@@ -210,7 +210,7 @@ const STYLE = `
 .s-logout:hover{color:${C.blush};border-color:rgba(212,168,154,.4);}
 
 /* NAV */
-.nav{background:${C.deep};display:flex;align-items:center;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(196,151,90,.15);}
+.nav{background:${C.deep};display:flex;align-items:center;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(196,151,90,.15);min-width:0;}
 .nav::-webkit-scrollbar{display:none;}
 .nav-brand{font-family:'Cormorant Garamond',serif;font-size:17px;color:${C.gold};font-style:italic;padding:0 16px 0 20px;border-right:1px solid rgba(255,255,255,.08);flex-shrink:0;}
 .nav-tab{padding:14px 14px;font-size:10px;color:${C.muted};cursor:pointer;white-space:nowrap;border:none;border-bottom:2px solid transparent;background:none;font-family:'DM Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;transition:all .2s;flex-shrink:0;}
