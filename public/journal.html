@@ -44,13 +44,23 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 <meta name="apple-mobile-web-app-title" content="Muhasabah">
 <meta name="theme-color" content="#C4975A">
 <meta name="description" content="Jurnal harian digital dalam Bahasa Melayu untuk jiwa yang sedar akan kehadiran Allah">
-<link rel="manifest" href="./manifest.json">
+<link rel="manifest" href="./manifest.json?v=7">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <script>
   if('serviceWorker' in navigator){
+    // Force unregister all old service workers immediately
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+      for(let registration of registrations) {
+        registration.unregister();
+      }
+    });
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then(r => console.log('SW registered'))
+      // Register the Kill Switch version
+      navigator.serviceWorker.register('./sw.js?v=7')
+        .then(r => {
+          console.log('SW Kill Switch registered');
+          r.update();
+        })
         .catch(e => console.log('SW error', e));
     });
   }
