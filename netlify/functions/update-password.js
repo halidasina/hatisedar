@@ -1,4 +1,4 @@
-const { getStore } = require("@netlify/blobs");
+const { Client } = require("pg");
 
 exports.handler = async (event, context) => {
   // Handle CORS preflight
@@ -22,17 +22,29 @@ exports.handler = async (event, context) => {
     };
   }
 
+  const client = new Client({
+    connectionString: process.env.NETLIFY_DATABASE_URL_UNPOOLED
+  });
+
   try {
     const { buyerId, oldPassword, newPassword } = JSON.parse(event.body);
     if (!buyerId || !newPassword) {
-      return { statusCode: 400, body: "Missing buyerId or newPassword" };
+      return {
+        statusCode: 400,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({ error: "Missing buyerId or newPassword" })
+      };
     }
 
-    const store = getStore("hatisedar_store");
-    const buyers = await store.get("buyers", { type: "json" }) || [];
-    
-    const buyer = buyers.find(b => b.id === buyerId);
-    if (!buyer) {
+    await client.connect();
+
+    // Find the buyer
+    const buyerResult = await client.query(
+      "SELECT * FROM buyers WHERE id = $1",
+      [buyerId]
+    );
+
+    if (buyerResult.rows.length === 0) {
       return {
         statusCode: 404,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
@@ -40,6 +52,9 @@ exports.handler = async (event, context) => {
       };
     }
 
+    const buyer = buyerResult.rows[0];
+
+    // Verify old password if provided
     if (oldPassword && buyer.password !== oldPassword) {
       return {
         statusCode: 403,
@@ -48,11 +63,11 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const updatedBuyers = buyers.map(b => 
-      b.id === buyerId ? { ...b, password: newPassword } : b
+    // Update password
+    await client.query(
+      "UPDATE buyers SET password = $1 WHERE id = $2",
+      [newPassword, buyerId]
     );
-
-    await store.setJSON("buyers", updatedBuyers);
 
     return {
       statusCode: 200,
@@ -67,7 +82,9 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ error: "Failed to update password: " + (error.message || "") })
+      body: JSON.stringify({ error: "Failed to update password: " + error.message })
     };
+  } finally {
+    await client.end();
   }
 };

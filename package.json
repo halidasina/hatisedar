@@ -4,7 +4,7 @@
   "description": "Soul Journal by Hati Sedar",
   "main": "index.html",
   "dependencies": {
-    "@netlify/blobs": "^2.2.4",
+    "pg": "^8.11.3",
     "openai": "^4.28.0"
   }
 }

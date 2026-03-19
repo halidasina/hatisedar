@@ -21,16 +21,20 @@ exports.handler = async (event, context) => {
   try {
     await client.connect();
 
-    // Fetch all buyers from the database
-    const result = await client.query("SELECT * FROM buyers ORDER BY created_timestamp DESC");
-    const buyers = result.rows.map(row => ({
-      id: row.id,
-      name: row.name,
-      email: row.email,
-      password: row.password,
-      createdAt: row.created_at,
-      active: row.active
-    }));
+    // Create buyers table if it doesn't exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS buyers (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL,
+        created_at DATE NOT NULL,
+        active BOOLEAN DEFAULT true,
+        created_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    console.log("Database initialized successfully");
 
     return {
       statusCode: 200,
@@ -38,14 +42,14 @@ exports.handler = async (event, context) => {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*"
       },
-      body: JSON.stringify({ buyers })
+      body: JSON.stringify({ message: "Database initialized successfully" })
     };
   } catch (error) {
-    console.error("Error fetching buyers:", error);
+    console.error("Error initializing database:", error);
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ error: "Failed to fetch buyers: " + error.message })
+      body: JSON.stringify({ error: "Failed to initialize database: " + error.message })
     };
   } finally {
     await client.end();

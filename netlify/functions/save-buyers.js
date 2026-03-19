@@ -1,4 +1,4 @@
-const { getStore } = require("@netlify/blobs");
+const { Client } = require("pg");
 
 exports.handler = async (event, context) => {
   // Handle CORS preflight
@@ -22,6 +22,10 @@ exports.handler = async (event, context) => {
     };
   }
 
+  const client = new Client({
+    connectionString: process.env.NETLIFY_DATABASE_URL_UNPOOLED
+  });
+
   try {
     const { buyers } = JSON.parse(event.body);
     if (!Array.isArray(buyers)) {
@@ -32,8 +36,18 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const store = getStore("hatisedar_store");
-    await store.setJSON("buyers", buyers);
+    await client.connect();
+
+    // Clear existing buyers and insert new ones
+    await client.query("DELETE FROM buyers");
+
+    for (const buyer of buyers) {
+      await client.query(
+        `INSERT INTO buyers (id, name, email, password, created_at, active)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [buyer.id, buyer.name, buyer.email, buyer.password, buyer.createdAt, buyer.active]
+      );
+    }
 
     return {
       statusCode: 200,
@@ -45,18 +59,12 @@ exports.handler = async (event, context) => {
     };
   } catch (error) {
     console.error("Error saving buyers:", error);
-    const msg = error.message || "";
-    if (msg.includes("token") || msg.includes("site") || msg.includes("401") || msg.includes("403") || msg.includes("unauthorized")) {
-      return {
-        statusCode: 500,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({ error: "Netlify Blobs belum diaktifkan. Sila aktifkan di Netlify Dashboard > Site Settings > Blobs." })
-      };
-    }
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ error: "Failed to save buyers: " + msg })
+      body: JSON.stringify({ error: "Failed to save buyers: " + error.message })
     };
+  } finally {
+    await client.end();
   }
 };
