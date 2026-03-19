@@ -106,7 +106,8 @@ const sset = (k,v) => { try{ localStorage.setItem(k,JSON.stringify(v)); console.
 const sgetBuyers = async () => {
   console.log("[sgetBuyers] Starting buyer fetch...");
   try{
-    const r = await fetch("https://mysouljournal.netlify.app/.netlify/functions/get-buyers");
+    // Always try server first
+    const r = await fetch("/.netlify/functions/get-buyers");
     if(!r.ok) throw new Error(`Server error: ${r.status}`);
     const data = await r.json();
     const serverBuyers = data.buyers || [];
@@ -114,42 +115,41 @@ const sgetBuyers = async () => {
     if(serverBuyers && Array.isArray(serverBuyers)){
       sset(BUYERS_KEY, serverBuyers);
       const ids = serverBuyers.map(b=>b.id);
-      const result = [...serverBuyers,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
-      console.log("[sgetBuyers] Final result:", result);
-      return result;
+      return [...serverBuyers,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
     }
   }catch(e){
-    console.warn("[sgetBuyers] Server fetch failed:", e);
+    console.warn("[sgetBuyers] Server fetch failed, trying fallback...", e);
   }
+  // Fallback to local storage
   try{
     const local = JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
-    console.log("[sgetBuyers] Fallback to local storage:", local);
     if(local && Array.isArray(local) && local.length > 0){
       const ids = local.map(b=>b.id);
       return [...local,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
     }
   }catch(e){ console.error("[sgetBuyers] Local storage error:", e); }
-  console.log("[sgetBuyers] Returning DEMO_BUYERS only");
   return DEMO_BUYERS;
 };
 const saveBuyers = async (buyers) => {
-  console.log("[saveBuyers] Attempting to save:", buyers);
+  console.log("[saveBuyers] Attempting to save to server:", buyers);
   try{
-    const r = await fetch("https://mysouljournal.netlify.app/.netlify/functions/save-buyers",{
+    const r = await fetch("/.netlify/functions/save-buyers",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({buyers})
     });
     if(!r.ok) throw new Error(`Server error: ${r.status}`);
     const data = await r.json();
-    console.log("[saveBuyers] Server response:", data);
+    console.log("[saveBuyers] SUCCESS - Server response:", data);
     sset(BUYERS_KEY, buyers);
-    console.log("[saveBuyers] Also saved to local storage");
     return true;
   }catch(e){
-    console.error("[saveBuyers] Server save failed:", e);
+    console.error("[saveBuyers] FAILED - Server save error:", e);
+    console.error("[saveBuyers] ERROR DETAILS:", {
+      message: e.message,
+      timestamp: new Date().toISOString()
+    });
     sset(BUYERS_KEY, buyers);
-    console.log("[saveBuyers] Saved to local storage as fallback");
     return false;
   }
 };
@@ -343,24 +343,25 @@ function Admin({onLogout}) {
   const [toast,setToast]   = useState("");
   const [cfm,setCfm]       = useState(null);
 
-  const loadBuyers = async() => {
+  const loadBuyers = async(manual = false) => {
     console.log("[Admin] Loading buyers...");
+    if(manual) showToast("Memuatkan data dari server...");
     try{
-      const r = await fetch("https://mysouljournal.netlify.app/.netlify/functions/get-buyers");
+      const r = await fetch("/.netlify/functions/get-buyers");
       if(!r.ok) throw new Error(`Server error: ${r.status}`);
       const data = await r.json();
       const serverBuyers = data.buyers || [];
       console.log("[Admin] Server buyers:", serverBuyers);
       setBuyers(serverBuyers);
       sset(BUYERS_KEY, serverBuyers);
+      if(manual) showToast("✓ Data dikemaskini");
     }catch(e){
       console.warn("[Admin] Server fetch failed:", e);
+      if(manual) showToast("⚠ Gagal memuatkan data dari server");
       try{
         const local = JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
-        console.log("[Admin] Using local buyers:", local);
         setBuyers(local);
       }catch(e2){
-        console.error("[Admin] Failed to load any buyers:", e2);
         setBuyers([]);
       }
     }
@@ -387,9 +388,9 @@ function Admin({onLogout}) {
     const synced = await save([...buyers,b]);
     setName(""); setEmail(""); setPw(genPW());
     if(synced){
-      showToast("✓ Pembeli ditambah (tersimpan ke server)");
+      showToast("✓ Pembeli ditambah (TERSIMPAN KE SERVER)");
     } else {
-      showToast("✓ Pembeli ditambah (lokal sahaja)");
+      showToast("⚠ Pembeli ditambah TETAPI HANYA LOKAL - PERIKSA SAMBUNGAN");
     }
   };
 
@@ -418,7 +419,10 @@ function Admin({onLogout}) {
       <div className="adm-body">
         {/* Stats */}
         <div className="adm-stats">
-          <div className="adm-stat"><div className="adm-stat-n">{buyers.length}</div><div className="adm-stat-l">JUMLAH PEMBELI</div></div>
+          <div className="adm-stat" onClick={()=>loadBuyers(true)} style={{cursor:'pointer'}}>
+            <div className="adm-stat-n">{buyers.length}</div>
+            <div className="adm-stat-l">JUMLAH PEMBELI (KLIK UNTUK REFRESH)</div>
+          </div>
           <div className="adm-stat"><div className="adm-stat-n">{active}</div><div className="adm-stat-l">AKTIF</div></div>
           <div className="adm-stat"><div className="adm-stat-n">{buyers.length-active}</div><div className="adm-stat-l">TIDAK AKTIF</div></div>
           <div className="adm-stat"><div className="adm-stat-n" style={{fontSize:18,paddingTop:10}}>RM{(buyers.length*14.90).toFixed(2)}</div><div className="adm-stat-l">JUMLAH HASIL</div></div>
