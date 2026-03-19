@@ -1,4 +1,4 @@
-const CACHE_NAME = 'muhasabah-journal-v3';
+const CACHE_NAME = 'muhasabah-journal-v4';
 const ASSETS = [
   './app.html',
   './manifest.json',
@@ -37,9 +37,9 @@ self.addEventListener('fetch', e => {
         }
         return response;
       }).catch(() => {
-        // Offline fallback
+        // Offline fallback — updated path for Netlify root
         if (e.request.destination === 'document') {
-          return caches.match('/hatisedar/app.html');
+          return caches.match('/app.html');
         }
       });
     })
