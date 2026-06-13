@@ -39,7 +39,7 @@ exports.handler = async (event) => {
     billPriceSetting: '1',
     billPayorInfo: '1',
     billAmount: '1490',
-    billReturnUrl: 'https://mymuhasabahjournal.netlify.app/journal.html',
+    billReturnUrl: 'https://mymuhasabahjournal.netlify.app/payment-success.html',
     billCallbackUrl: 'https://mymuhasabahjournal.netlify.app/.netlify/functions/toyyibpay-callback',
     billExternalReferenceNo: ref,
     billTo: name,
