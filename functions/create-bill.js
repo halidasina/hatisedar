@@ -14,11 +14,12 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
-  let name, email;
+  let name, email, phone;
   try {
     const body = JSON.parse(event.body);
     name = body.name?.trim();
     email = body.email?.trim().toLowerCase();
+    phone = body.phone?.trim();
   } catch (e) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid request' }) };
   }
@@ -43,7 +44,7 @@ exports.handler = async (event) => {
     billExternalReferenceNo: ref,
     billTo: name,
     billEmail: email,
-    billPhone: '',
+    billPhone: phone || '',
     billSplitPayment: '0',
     billSplitPaymentArgs: '',
     billPaymentChannel: '0',

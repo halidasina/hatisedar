@@ -167,6 +167,10 @@
         <label>EMEL</label>
         <input type="email" id="email" placeholder="Contoh: ahmad@gmail.com" required autocomplete="email" />
       </div>
+      <div class="field">
+        <label>NO. TELEFON</label>
+        <input type="tel" id="phone" placeholder="Contoh: 0123456789" required autocomplete="tel" />
+      </div>
       <button type="submit" class="btn" id="submitBtn">Teruskan ke Pembayaran →</button>
     </form>
 
@@ -181,13 +185,14 @@
 
       const name = document.getElementById('name').value.trim();
       const email = document.getElementById('email').value.trim().toLowerCase();
+      const phone = document.getElementById('phone').value.trim();
       const errMsg = document.getElementById('errMsg');
       const btn = document.getElementById('submitBtn');
 
       errMsg.style.display = 'none';
 
-      if (!name || !email) {
-        errMsg.textContent = 'Sila isi nama dan emel anda.';
+      if (!name || !email || !phone) {
+        errMsg.textContent = 'Sila isi semua maklumat.';
         errMsg.style.display = 'block';
         return;
       }
@@ -199,7 +204,7 @@
         const res = await fetch('/.netlify/functions/create-bill', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email }),
+          body: JSON.stringify({ name, email, phone }),
         });
 
         const data = await res.json();
