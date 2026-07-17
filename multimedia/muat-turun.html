@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Muat Turun Ebook — Kesihatan Jiwa</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Source+Serif+4:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --jade:#2d5a4e;
+  --gold:#b8972a;
+  --parch:#f0e8d8;
+  --parch-border:#d4c4a0;
+  --cream:#faf6ef;
+  --text-secondary:#5a5248;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Poppins',sans-serif;
+  background:var(--cream);
+  color:#2a2622;
+  line-height:1.6;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:1.25rem;
+}
+.box{max-width:480px;width:100%;text-align:center}
+.icon-wrap{width:72px;height:72px;margin:0 auto 1.2rem}
+.card{background:#fff;border:1px solid var(--parch-border);border-radius:12px;padding:2rem 1.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.status{font-size:11px;letter-spacing:2px;color:var(--gold);margin-bottom:0.6rem}
+h1{font-size:22px;font-weight:500;color:var(--jade);margin-bottom:0.8rem;font-family:'Source Serif 4',serif;line-height:1.4}
+.lead{font-size:14px;color:var(--text-secondary);margin-bottom:1.8rem}
+.btn-download{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  background:var(--jade);
+  color:#faf6ef;
+  font-family:'Poppins',sans-serif;
+  font-size:15px;
+  font-weight:600;
+  text-decoration:none;
+  padding:14px 28px;
+  border-radius:8px;
+  transition:opacity .2s;
+}
+.btn-download:hover{opacity:0.88}
+.btn-download svg{flex-shrink:0}
+.note{font-size:12px;color:#9a8060;margin-top:1.4rem;background:var(--parch);border:0.5px solid var(--parch-border);border-radius:8px;padding:10px 14px;text-align:left}
+a.home{display:inline-block;margin-top:1.5rem;font-size:13px;color:var(--jade);text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="icon-wrap">
+    <img src="logo.svg" alt="" width="72" height="72">
+  </div>
+
+  <div class="card">
+    <div class="status">PEMBELIAN BERJAYA</div>
+    <h1>Ebook anda sedia untuk dimuat turun</h1>
+    <p class="lead">Terima kasih kerana mempercayai kami.<br>Klik butang di bawah untuk muat turun PDF anda.</p>
+
+    <a class="btn-download" href="https://drive.google.com/uc?export=download&id=1ucpDjy7tWJGO230lhegHj70t0XyUaIQt" download>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Muat Turun Ebook (PDF)
+    </a>
+
+    <div class="note">
+      Sekiranya muat turun tidak bermula, cuba buka pautan ini dalam pelayar lain.<br>
+      Ada masalah? Hubungi kami di <strong>molifemarketing@gmail.com</strong>
+    </div>
+  </div>
+
+  <a class="home" href="index.html">&larr; Kembali ke laman utama</a>
+</div>
+</body>
+</html>

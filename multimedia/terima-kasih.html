@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terima Kasih — Kesihatan Jiwa</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<!-- Google Analytics --><script async src="https://www.googletagmanager.com/gtag/js?id=G-85Y7EVQTPE"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-85Y7EVQTPE');</script><!-- End Google Analytics -->
+<!-- Meta Pixel Code --><script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js'); fbq('init', '1345495384346175'); fbq('track', 'PageView');</script><noscript><img height="1" width="1" src="https://www.facebook.com/tr?id=1345495384346175&ev=PageView&noscript=1"/></noscript><!-- End Meta Pixel Code -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Source+Serif+4:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --jade:#2d5a4e;
+  --gold:#b8972a;
+  --gold-light:#c9a83c;
+  --parch:#f0e8d8;
+  --parch-border:#d4c4a0;
+  --cream:#faf6ef;
+  --text-secondary:#5a5248;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Poppins',sans-serif;
+  background:var(--cream);
+  color:#2a2622;
+  line-height:1.6;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:1.25rem;
+}
+.box{
+  max-width:480px;
+  width:100%;
+  text-align:center;
+}
+.icon-wrap{width:72px;height:72px;margin:0 auto 1.2rem}
+.card{background:#fff;border:1px solid var(--parch-border);border-radius:12px;padding:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.status{font-size:11px;letter-spacing:2px;color:var(--gold);margin-bottom:0.6rem}
+h1{font-size:24px;font-weight:500;color:var(--jade);margin-bottom:0.8rem;font-family:'Source Serif 4',serif;line-height:1.4}
+.lead{font-size:14px;color:var(--text-secondary);margin-bottom:1.5rem}
+.steps{text-align:left;font-size:13px;color:var(--text-secondary);margin:1.2rem 0;padding-left:0;list-style:none}
+.steps li{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
+.steps .num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--jade);color:var(--cream);font-size:12px;display:flex;align-items:center;justify-content:center}
+.note{font-size:12px;color:#9a8060;margin-top:1.2rem;background:var(--parch);border:0.5px solid var(--parch-border);border-radius:8px;padding:10px 14px}
+.failed{display:none}
+.success{display:block}
+.pending{display:none}
+a.home{display:inline-block;margin-top:1.5rem;font-size:13px;color:var(--jade);text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="icon-wrap">
+    <img src="logo.svg" alt="" width="72" height="72">
+  </div>
+
+  <div class="card" id="state-success">
+    <div class="status">PEMBAYARAN BERJAYA</div>
+    <h1>Terima kasih atas pembelian anda!</h1>
+    <p class="lead">Pesanan anda untuk <strong>"Siapa Saya, Kenapa Saya Sakit, dan Bagaimana Saya Boleh Sembuh?"</strong> telah diterima.</p>
+
+    <ul class="steps">
+      <li><span class="num">1</span><span>Kami sedang menyediakan salinan PDF anda — dicetak dengan nama anda sebagai tanda hakmilik peribadi.</span></li>
+      <li><span class="num">2</span><span>Pautan muat turun akan dihantar ke <strong>e-mel yang anda gunakan semasa pembayaran</strong> dalam masa 5–15 minit.</span></li>
+      <li><span class="num">3</span><span>Sila semak peti masuk (dan folder spam/promosi) anda.</span></li>
+    </ul>
+
+    <div class="note">
+      Tidak menerima e-mel selepas 30 minit? Hubungi kami di
+      <strong>molifemarketing@gmail.com</strong> dengan resit pembayaran anda.
+    </div>
+  </div>
+
+  <div class="card failed" id="state-failed">
+    <div class="status" style="color:#8b3a2a">PEMBAYARAN TIDAK BERJAYA</div>
+    <h1>Pembayaran anda tidak berjaya</h1>
+    <p class="lead">Jangan risau — tiada caj telah dibuat. Sila cuba sekali lagi.</p>
+    <a class="home" href="https://toyyibpay.com/KJ">Cuba bayar semula &rarr;</a>
+  </div>
+
+  <div class="card pending" id="state-pending">
+    <div class="status" style="color:var(--gold)">PEMBAYARAN SEDANG DIPROSES</div>
+    <h1>Pembayaran anda sedang diproses</h1>
+    <p class="lead">Sila tunggu sebentar. Jika status tidak berubah, semak semula akaun bank/e-wallet anda.</p>
+  </div>
+
+  <a class="home" href="index.html">&larr; Kembali ke laman utama</a>
+</div>
+
+<script>
+  // toyyibpay return URL appends ?status_id=1 (success) | 2 (pending) | 3 (failed)
+  var params = new URLSearchParams(window.location.search);
+  var status = params.get('status_id');
+
+  if (status === '2') {
+    document.getElementById('state-success').style.display = 'none';
+    document.getElementById('state-pending').style.display = 'block';
+  } else if (status === '3') {
+    document.getElementById('state-success').style.display = 'none';
+    document.getElementById('state-failed').style.display = 'block';
+  }
+  // status === '1' or missing -> default success view stays visible
+</script>
+</body>
+</html>

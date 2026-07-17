@@ -1,0 +1,5 @@
+.netlify/
+node_modules/
+delivery-script/config.json
+delivery-script/processed.json
+delivery-script/delivery.log
